@@ -59,6 +59,10 @@ class Instrument:
         """五線譜に書く音: (音名のリスト, アルペジオか)。打楽器は None。"""
         return None
 
+    def explain_invalid(self, sym: str) -> str | None:
+        """canonical() が None を返したときの、より詳しいエラーメッセージ(なければ None)。"""
+        return None
+
     def render_single(self, sym, octave, dur, mode, beat_sec=1.0):
         """render_part を持つ楽器で1音だけ鳴らす(テスト・試聴用)。"""
         ev = SimpleNamespace(symbol=sym, octave=octave, start_sec=0.0, end_sec=dur, beat_sec=beat_sec)
@@ -304,13 +308,38 @@ class Biwa(Instrument):
     palette = [s for row in BIWA_GRID for s in row] + ["単一", "単乚", "単ク", "単丄"]
     symbol_aliases = {"凡": "凢", "上": "丄", "行": "ク", "ゝ": "〻", "々": "〻", "比": "ヒ"}
 
+    def _chord_parts(self, sym):
+        """'一+ク' のような同時に鳴らす組み合わせを、正規化した譜字のリストにする(不正なら None)。"""
+        parts = [self.symbol_aliases.get(p, p) for p in sym.replace("＋", "+").split("+")]
+        parts = [p[1:] if p.startswith("単") else p for p in parts]
+        if len(parts) < 2 or any(p not in BIWA_POS for p in parts):
+            return None
+        if len({BIWA_POS[p][0] for p in parts}) != len(parts):
+            return None   # 同じ弦の音は同時に鳴らせない
+        return sorted(parts, key=lambda p: BIWA_POS[p][0])
+
     def canonical(self, sym):
+        if "+" in sym or "＋" in sym:
+            parts = self._chord_parts(sym)
+            return "+".join(parts) if parts else None
         single = sym.startswith("単")
         base = sym[1:] if single else sym
         base = self.symbol_aliases.get(base, base)
         if base not in BIWA_POS:
             return None
         return ("単" if single else "") + base
+
+    def explain_invalid(self, sym):
+        if "+" not in sym and "＋" not in sym:
+            return None
+        parts = [self.symbol_aliases.get(p, p) for p in sym.replace("＋", "+").split("+")]
+        parts = [p[1:] if p.startswith("単") else p for p in parts]
+        bad = [p for p in parts if p not in BIWA_POS]
+        if bad:
+            return f"琵琶の譜字 '{bad[0]}' は不明です"
+        strings = [BIWA_POS[p][0] for p in parts]
+        dup = next(p for p in parts if strings.count(BIWA_POS[p][0]) > 1)
+        return f"'{sym}' は同じ弦({BIWA_POS[dup][0] + 1}弦)の音を含むため、同時には鳴らせません"
 
     def _note(self, s, f, mode):
         return _TUNINGS["biwa"][mode][s][f]
@@ -324,6 +353,8 @@ class Biwa(Instrument):
         return [span * 0.5 * i / n_strings for i in range(n_strings)]
 
     def staff_pitches(self, sym, octave, mode):
+        if "+" in sym:   # 同時に鳴らす和音(アルペジオなし)
+            return [shift_note(self._note(*BIWA_POS[p], mode), octave) for p in sym.split("+")], False
         single = sym.startswith("単")
         s, f = BIWA_POS[sym[1:] if single else sym]
         if single:
@@ -333,11 +364,17 @@ class Biwa(Instrument):
         return [shift_note(n, octave) for n in notes], len(notes) > 1
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
+        ring = max(round(dur * 2) / 2, 3.0)  # 0.5秒刻みに丸めて同じ音をキャッシュで使い回す
+        tone = lambda note, strike=1.0: synth.biwa_note(hz(note, octave), ring, strike)
+        if "+" in sym:
+            # 同時に鳴らす: 撥でまとめて弾く(撥面を打つ音は1回)
+            parts = sym.split("+")
+            out = sum(tone(self._note(*BIWA_POS[p], mode), 1.0 if i == 0 else 0.2)
+                      for i, p in enumerate(parts))
+            return out * (0.6 / len(parts) ** 0.5)
         single = sym.startswith("単")
         base = sym[1:] if single else sym
         s, f = BIWA_POS[base]
-        ring = max(round(dur * 2) / 2, 3.0)  # 0.5秒刻みに丸めて同じ音をキャッシュで使い回す
-        tone = lambda note, strike=1.0: synth.biwa_note(hz(note, octave), ring, strike)
         if single:
             return tone(self._note(s, f, mode)) * 0.6
         # 掻撥: 低い弦(開放)から目的の弦まで撥で掻き下ろす(第3・4弦なら3〜4本)。

@@ -173,7 +173,7 @@ class App(tk.Tk):
                        command=lambda d=inst.display: self.insert_text(f"\n[{d}]\n")).grid(
                 row=0, column=0, columnspan=7, sticky="we", pady=(0, 4))
             cols = 7
-            items = inst.palette + ["-", ".", "|"]
+            items = inst.palette + (["+"] if inst.key == "biwa" else []) + ["-", ".", "|"]
             half = None
             if inst.key == "koto":
                 half = tk.BooleanVar(value=False)
@@ -181,6 +181,15 @@ class App(tk.Tk):
                     row=98, column=0, columnspan=cols, sticky="w", pady=(6, 0))
 
             def ins(s, half=half):
+                if s == "+":
+                    # 直前の譜字につなげる(「一」「+」「ク」と押すと「一+ク」)
+                    if self.text.get("insert -1c", "insert") == " ":
+                        self.text.delete("insert -1c", "insert")
+                    self.insert_text("+")
+                    return
+                if self.text.get("insert -1c", "insert") == "+":
+                    self.insert_text(s + " ")
+                    return
                 if half is not None and half.get() and s not in ("-", "|"):
                     s += ":1/2"
                 self.insert_text(s + " ")
@@ -597,7 +606,7 @@ _HELP = {
     "sho": "合竹名(乞 一 工 凢 乙 下 十 美 行 比 / 乙美 乙言 凢美 凢言)。「単千」のように単を付けると一本だけ。双調では「十」が5音の十になる。",
     "hichiriki": "舌 五 工 凢 六 四 一 丄 丁(低い順, G4〜A5)。ムは現行曲では使わない。音頭に塩梅(下からのすくい上げ)が付く。平調では舌を F#4、丄を F#5 にメリで下げる。調子ごとのメリは tunings.json の hichiriki で上書き可。",
     "ryuteki": "和(低)の譜字。延ばしは「-」(1拍)、「-:2」で2拍。「責六」または「六'」で責(1オクターブ上)、「干,」で1オクターブ下。干は六の上(E)で鳴る。〒→干 などの異体字も可。",
-    "biwa": "1弦:一工凢フ斗 2弦:乚下十乙コ 3弦:ク七ヒ〻之 4弦:丄八丨ム也(開放,第1〜4柱)。通常は掻撥(低い弦から掻く)、「単」を付けると単音。調弦は tunings.json(暫定値)。",
+    "biwa": "1弦:一工凢フ斗 2弦:乚下十乙コ 3弦:ク七ヒ〻之 4弦:丄八丨ム也(開放,第1〜4柱)。通常は掻撥(低い弦から掻く)、「単」を付けると単音。「一+ク」のように + でつなぐと別々の弦を同時に鳴らす(同じ弦どうしは不可)。調弦は tunings.json(暫定値)。",
     "koto": "弦名 一〜十 斗 為 巾 で単音。「閑三」=閑掻、「早三」=早掻(近似)。半拍は「三:1/2」(休みは「.:1/2」)。調弦は tunings.json(暫定値)。",
     "kakko": "正=右の単打 / 片来=左桴のみのロール / 諸来=両桴のロール。来は長さ指定 例: 諸来:3(速さはテンポに連動)",
     "shoko": "金・生=一打 / ク=左 / レイ=右 / クレイ=左右2打",

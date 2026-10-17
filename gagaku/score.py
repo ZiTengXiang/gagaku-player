@@ -229,7 +229,7 @@ def parse(text: str) -> Score:
             canon = inst.canonical(sym)
             if canon is None:
                 raise ScoreError(
-                    f"{inst.display}の譜字 '{sym}' は不明です", lineno, c0
+                    inst.explain_invalid(sym) or f"{inst.display}の譜字 '{sym}' は不明です", lineno, c0
                 )
             octs = m.group("oct") or ""
             octave = sum(1 if ch in "'’" else -1 for ch in octs)

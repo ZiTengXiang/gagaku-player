@@ -74,6 +74,16 @@ def test_beats_header_rebars_ignoring_bar_lines():
         score.parse("拍子: 0\n[笙]\n乙\n")
 
 
+def test_biwa_simultaneous_strings():
+    sc = score.parse("[琵琶]\nク+一:2 丄+乚 |\n")
+    assert notes(sc, "biwa") == [("一+ク", Fraction(0), Fraction(2)), ("乚+丄", Fraction(2), Fraction(1))]
+    with pytest.raises(score.ScoreError) as ei:
+        score.parse("[琵琶]\n下+十\n")          # どちらも2弦
+    assert "同じ弦" in str(ei.value)
+    with pytest.raises(score.ScoreError):
+        score.parse("[琵琶]\n下+X\n")
+
+
 def test_length_warning():
     sc = score.parse("[笙]\n乙 - - -\n[篳篥]\n六 -\n")
     assert any("揃っていません" in w for w in sc.warnings)

@@ -26,6 +26,17 @@ def test_staff_pitches_parse_in_every_mode(mode):
             assert names and all(note_step(n) for n in names)
 
 
+def test_biwa_chord_renders_and_has_no_arpeggio():
+    b = I.INSTRUMENTS["biwa"]
+    w = b.render("一+ク", 0, 1.0, "平調")
+    assert np.all(np.isfinite(w)) and np.max(np.abs(w)) > 0
+    names, arp = b.staff_pitches("一+ク", 0, "平調")
+    assert arp is False and len(names) == 2
+    # 掻撥と違い、両方の弦を同時に鳴らす(先頭から両方の音が出ている)
+    sweep = b.render("ク", 0, 1.0, "平調", beat_sec=1.0)
+    assert len(w) <= len(sweep)
+
+
 def test_hichiriki_meri_in_hyojo():
     h = I.INSTRUMENTS["hichiriki"]
     assert h._pitch("舌", 0, "平調") == pytest.approx(I.hz("F#4"))
