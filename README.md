@@ -3,7 +3,7 @@
 [![CI](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/gagaku-player)](https://pypi.org/project/gagaku-player/)
 
-雅楽の譜字をテキストで入力すると、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する Python デスクトップアプリ。
+雅楽の打ち込み・DTM ができる無料のデスクトップアプリ。雅楽の譜字をテキストで入力すると、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する(Windows・macOS・Linux、Python 製)。DAW や音源ソフトは不要で、五線譜表示や WAV 書き出しにも対応する。
 
 紹介サイト: https://zitengxiang.github.io/gagaku-player/
 
