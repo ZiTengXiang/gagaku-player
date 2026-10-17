@@ -55,11 +55,21 @@ class Instrument:
     # 戻り値は [(開始秒, 波形), ...]
     render_part = None
 
+    def staff_pitches(self, sym: str, octave: int, mode: str):
+        """五線譜に書く音: (音名のリスト, アルペジオか)。打楽器は None。"""
+        return None
+
     def render_single(self, sym, octave, dur, mode, beat_sec=1.0):
         """render_part を持つ楽器で1音だけ鳴らす(テスト・試聴用)。"""
         ev = SimpleNamespace(symbol=sym, octave=octave, start_sec=0.0, end_sec=dur, beat_sec=beat_sec)
         (_, w), = self.render_part([ev], mode)
         return w
+
+
+def shift_note(note: str, octaves: int) -> str:
+    """'F#4' を octaves オクターブずらす。"""
+    m = _NOTE_RE.match(note)
+    return f"{m.group(1)}{m.group(2)}{int(m.group(3)) + octaves}"
 
 
 def split_phrases(events, gap: float = 0.005):
@@ -126,6 +136,9 @@ class Sho(Instrument):
         if sym == "十" and mode == "双調":
             return SHO_JU_SOJO.split()
         return SHO_AITAKE[sym].split()
+
+    def staff_pitches(self, sym, octave, mode):
+        return [shift_note(SHO_PIPES[p], octave) for p in self._pipes(sym, mode)], False
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
         return self.render_single(sym, octave, dur, mode, beat_sec)
@@ -204,6 +217,11 @@ class Ryuteki(Instrument):
             sym, octave = sym[1:], octave + 1
         return hz(RYUTEKI[sym], octave), octave >= 1
 
+    def staff_pitches(self, sym, octave, mode):
+        if sym.startswith("責"):
+            sym, octave = sym[1:], octave + 1
+        return [shift_note(RYUTEKI[sym], octave)], False
+
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
         return self.render_single(sym, octave, dur, mode, beat_sec)
 
@@ -237,9 +255,14 @@ class Hichiriki(Instrument):
     palette = ["舌", "五", "工", "凢", "六", "四", "一", "丄", "丁", "ム"]
     symbol_aliases = {"凡": "凢", "上": "丄", "丅": "丁", "下": "丁"}
 
+    def _note_name(self, sym, mode):
+        return _TUNINGS.get("hichiriki", {}).get(mode, {}).get(sym, HICHIRIKI[sym])
+
     def _pitch(self, sym, octave, mode):
-        note = _TUNINGS.get("hichiriki", {}).get(mode, {}).get(sym, HICHIRIKI[sym])
-        return hz(note, octave)
+        return hz(self._note_name(sym, mode), octave)
+
+    def staff_pitches(self, sym, octave, mode):
+        return [shift_note(self._note_name(sym, mode), octave)], False
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
         return self.render_single(sym, octave, dur, mode, beat_sec)
@@ -290,6 +313,15 @@ class Biwa(Instrument):
 
     def _note(self, s, f, mode):
         return _TUNINGS["biwa"][mode][s][f]
+
+    def staff_pitches(self, sym, octave, mode):
+        single = sym.startswith("単")
+        s, f = BIWA_POS[sym[1:] if single else sym]
+        if single:
+            return [shift_note(self._note(s, f, mode), octave)], False
+        # 掻撥: 低い弦の開放 + 目的の音を、アルペジオの和音として書く
+        notes = [self._note(st, f if st == s else 0, mode) for st in range(0, s + 1)]
+        return [shift_note(n, octave) for n in notes], len(notes) > 1
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
         single = sym.startswith("単")
@@ -347,6 +379,15 @@ class Koto(Instrument):
             if abs(np.log2(hz(tune[j]) / target)) < 0.02:
                 return j
         return min(idx + 5, len(tune) - 1)
+
+    def staff_pitches(self, sym, octave, mode):
+        tune = _TUNINGS["koto"][mode]
+        if sym[0] not in "閑早":
+            return [shift_note(tune[KOTO_STRINGS.index(sym)], octave)], False
+        # 閑掻・早掻: 隣り合う2弦とオクターブ上の弦を、アルペジオの和音として書く
+        idx = KOTO_STRINGS.index(sym[1:])
+        strings = sorted({idx, min(idx + 1, 12), self._octave_string(idx, mode)})
+        return [shift_note(tune[i], octave) for i in strings], True
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
         ring = max(round(dur * 2) / 2, 3.0)  # 0.5秒刻みに丸めて同じ音をキャッシュで使い回す
