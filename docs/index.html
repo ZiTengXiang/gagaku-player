@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>雅楽譜プレイヤー</title>
+<meta name="description" content="雅楽の譜字をテキストで書くと、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する、無料・オープンソースの Python デスクトップアプリ。">
+<meta property="og:title" content="雅楽譜プレイヤー">
+<meta property="og:description" content="雅楽の譜字を書くと、八つの楽器が合奏する。Python 製のオープンソース・デスクトップアプリ。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://zitengxiang.github.io/gagaku-player/images/score.png">
+<link rel="icon" href="images/icon.png">
+<!-- GOOGLE_ANALYTICS -->
+<style>
+  :root {
+    --bg: #f8f3e8;
+    --paper: #fffdf7;
+    --ink: #2a2420;
+    --muted: #6f6458;
+    --line: #e2d8c5;
+    --accent: #9e201c;
+    --gold: #b8912f;
+    --code: #f1e9d8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1815;
+      --paper: #24201c;
+      --ink: #ece4d6;
+      --muted: #b0a493;
+      --line: #3d362e;
+      --accent: #e0645a;
+      --gold: #d4b25a;
+      --code: #2e2924;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    line-height: 1.8;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header.hero {
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(ellipse at 80% 0%, rgba(184, 145, 47, .12), transparent 60%),
+      radial-gradient(ellipse at 0% 100%, rgba(158, 32, 28, .08), transparent 55%);
+  }
+  .hero-inner { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+  .hero img.icon { width: 112px; height: 112px; border-radius: 22px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+  .hero h1 {
+    margin: 0;
+    font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: .08em;
+  }
+  .hero p.tag { margin: 6px 0 0; font-size: 1.15rem; color: var(--muted); }
+  .buttons { margin-top: 26px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 10px 22px; border-radius: 999px; text-decoration: none;
+    font-weight: bold; border: 2px solid var(--accent);
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { color: var(--accent); background: transparent; }
+  section { padding: 44px 0; border-bottom: 1px solid var(--line); }
+  h2 {
+    font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-size: 1.6rem; margin: 0 0 18px; letter-spacing: .06em;
+  }
+  h2::before { content: ""; display: inline-block; width: 6px; height: 1.1em; background: var(--accent); margin-right: 12px; vertical-align: -0.15em; border-radius: 2px; }
+  .listen { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .listen audio { width: 100%; margin-top: 8px; }
+  .listen small { color: var(--muted); }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
+  .card p { margin: 0; color: var(--ink); font-size: .95rem; }
+  .instruments { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; }
+  .instruments li {
+    border: 1px solid var(--gold); color: var(--ink); border-radius: 8px; padding: 2px 12px;
+    font-family: "BIZ UDMincho", "Yu Mincho", serif; background: var(--paper);
+  }
+  figure { margin: 0 0 28px; }
+  figure img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+  figcaption { color: var(--muted); font-size: .95rem; margin-top: 6px; }
+  pre {
+    background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+    overflow-x: auto; font-family: "BIZ UDGothic", "MS Gothic", "Osaka-Mono", monospace; font-size: .92rem; line-height: 1.6;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: normal; white-space: nowrap; }
+  .note { background: var(--paper); border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 0 10px 10px 0; }
+  ol li { margin-bottom: 6px; }
+  footer { padding: 30px 0 50px; color: var(--muted); font-size: .9rem; }
+  @media (max-width: 600px) {
+    header.hero { padding: 40px 0 28px; }
+    .hero img.icon { width: 80px; height: 80px; }
+    th { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-inner">
+      <img class="icon" src="images/icon.png" alt="雅楽譜プレイヤーのアイコン">
+      <div>
+        <h1>雅楽譜プレイヤー</h1>
+        <p class="tag">雅楽の譜字を書くと、八つの楽器が合奏する。</p>
+      </div>
+    </div>
+    <div class="buttons">
+      <a class="btn primary" href="https://github.com/ZiTengXiang/gagaku-player/archive/refs/heads/main.zip">ダウンロード(ZIP)</a>
+      <a class="btn ghost" href="https://github.com/ZiTengXiang/gagaku-player">GitHub で見る</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>聴いてみる</h2>
+    <div class="listen">
+      オリジナル曲「若竹」(双調)の冒頭。笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓をすべてこのアプリで合成しています。
+      <audio controls preload="none" src="audio/wakatake.wav"></audio>
+      <small>※ 録音ではなく、プログラムで合成した音です。古典曲ではなく、このアプリのために作った曲です。</small>
+    </div>
+  </section>
+
+  <section>
+    <h2>できること</h2>
+    <ul class="instruments">
+      <li>笙</li><li>篳篥</li><li>竜笛</li><li>琵琶</li><li>筝</li><li>鞨鼓</li><li>鉦鼓</li><li>太鼓</li>
+    </ul>
+    <div class="features">
+      <div class="card"><h3>譜字のまま入力</h3><p>合竹(乞 一 工 凢 …)、篳篥・竜笛の譜字、琵琶の柱、筝の弦名、正・来・百・図などを、そのままテキストで書けます。譜字パレットからクリックでも入力できます。</p></div>
+      <div class="card"><h3>雅楽らしい奏し方</h3><p>笙は手移りで共通の竹を鳴らし続け、篳篥は塩梅で音をつなぎます。琵琶の掻撥、筝の閑掻・早掻、鞨鼓の来も再現します。</p></div>
+      <div class="card"><h3>六つの調子</h3><p>壱越調・平調・双調・黄鐘調・盤渉調・太食調に対応。平調では篳篥の舌・丄をメリで下げて吹きます。</p></div>
+      <div class="card"><h3>縦にそろう譜面</h3><p>譜面テキストは1段5小節で全楽器が上下に並び、拍の頭が縦にそろうよう自動で整形されます。</p></div>
+      <div class="card"><h3>楽譜表示・五線譜</h3><p>拍をそろえた総譜と、字譜つきの五線譜を表示。再生中は鳴っている音がハイライトされます。</p></div>
+      <div class="card"><h3>テンポ変化・WAV 書き出し</h3><p>次第に速まる雅楽のテンポを <code>tempo=</code> で書けます。演奏は WAV ファイルに書き出せます。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>画面</h2>
+    <figure>
+      <img src="images/score.png" alt="楽譜表示タブ: 全楽器の拍の頭をそろえた総譜" loading="lazy" width="1500" height="900">
+      <figcaption>楽譜表示 — 全楽器の拍の頭を縦にそろえた総譜。黄色は再生中の音。</figcaption>
+    </figure>
+    <figure>
+      <img src="images/staff.png" alt="五線譜タブ: 五線譜の下に譜字を付けた総譜" loading="lazy" width="1500" height="900">
+      <figcaption>五線譜 — 各音の下に譜字を付けた総譜。笙は合竹を和音で、琵琶・筝はアルペジオで書きます。</figcaption>
+    </figure>
+    <figure>
+      <img src="images/text.png" alt="譜面テキストタブ: 1段5小節で拍の頭が縦にそろった譜面" loading="lazy" width="1500" height="900">
+      <figcaption>譜面テキスト — 1段5小節で全楽器が上下に並び、拍の頭が縦にそろいます。</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>譜面の書き方</h2>
+    <p>UTF-8 のテキストファイル(拡張子 <code>.gaku</code>)に、ヘッダと楽器ごとの行を書きます。</p>
+<pre>title: 若竹
+mode: 双調
+tempo: 70
+
+[笙]   十    -   凢    -   |  乞    -  一    -   |
+[篳篥] 丄    四  六    工  |  五    -  工    六  |
+[竜笛] 責丄  干  六    中  |  夕    -  中    六  |
+[琵琶] ク    -   八    -   |  七    -  ヒ    -   |
+[筝]   閑三  -   早六  -   |  閑四  -  早五  -   |
+[鞨鼓] 正    .   正    .   |  片来  -  正    .   |</pre>
+    <table>
+      <tr><th>譜字</th><td>1拍</td></tr>
+      <tr><th>譜字:2 / 譜字:1/2</th><td>長さを拍で指定</td></tr>
+      <tr><th>-</th><td>直前の音を1拍延ばす</td></tr>
+      <tr><th>.</th><td>1拍休み(<code>.:2</code> のように長さも指定できる)</td></tr>
+      <tr><th>|</th><td>小節線</td></tr>
+      <tr><th>tempo=72</th><td>その位置からテンポを変える</td></tr>
+      <tr><th>譜字' / 譜字,</th><td>1オクターブ上 / 下(竜笛の責は <code>責六</code> とも書ける)</td></tr>
+    </table>
+    <p>詳しい書式と、楽器ごとの譜字の一覧は <a href="https://github.com/ZiTengXiang/gagaku-player#readme">README</a> を見てください。</p>
+  </section>
+
+  <section>
+    <h2>インストール</h2>
+    <ol>
+      <li><a href="https://www.python.org/downloads/">Python 3.10 以上</a>を入れる。</li>
+      <li>このアプリを<a href="https://github.com/ZiTengXiang/gagaku-player/archive/refs/heads/main.zip">ダウンロード</a>して展開する(または <code>git clone https://github.com/ZiTengXiang/gagaku-player.git</code>)。</li>
+      <li>展開したフォルダで次を実行する。</li>
+    </ol>
+<pre>pip install -r requirements.txt
+python main.py examples/wakatake_sojo.gaku</pre>
+    <p>Windows では追加のインストールなしで再生できます。macOS・Linux で再生するには <code>pip install sounddevice</code> も必要です。</p>
+  </section>
+
+  <section>
+    <h2>音高と調弦について</h2>
+    <div class="note">
+      <p>基準ピッチは A4 = 430 Hz です。笙・篳篥・竜笛の音高は公開資料の表に基づいています。楽琵琶・楽箏の調子ごとの調弦は出典が見つからなかったため、主音と音階から組んだ<strong>暫定値</strong>です(<code>gagaku/tunings.json</code> で書き換えられます)。閑掻・早掻・掻撥・来などの奏法も、手順を簡略化した近似です。正しい調弦や奏法をご存じの方は、<a href="https://github.com/ZiTengXiang/gagaku-player/issues">GitHub の Issues</a> で教えていただけると助かります。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>ライセンス</h2>
+    <p><a href="https://github.com/ZiTengXiang/gagaku-player/blob/main/LICENSE">MIT License</a>。改変・再配布・商用利用ができます(著作権表示を残してください)。</p>
+  </section>
+
+  <section id="privacy">
+    <h2>このサイトのアクセス解析について</h2>
+    <p>このサイトでは、利用状況を知るために Google が提供するアクセス解析ツール「Google アナリティクス」を使っています。Google アナリティクスは Cookie などを使って、閲覧したページ、おおよその地域、ブラウザの種類などの情報を収集します。収集される情報に、氏名など個人を特定する情報は含まれません。情報は Google のプライバシーポリシーに基づいて管理されます。</p>
+    <p>収集を望まない場合は、ブラウザの設定で Cookie を無効にするか、<a href="https://tools.google.com/dlpage/gaoptout?hl=ja">Google アナリティクス オプトアウト アドオン</a>を使ってください。詳しくは <a href="https://policies.google.com/technologies/partner-sites?hl=ja">Google のサービスを使用するサイトやアプリから収集した情報の Google による使用</a>をご覧ください。</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    雅楽譜プレイヤー — <a href="https://github.com/ZiTengXiang/gagaku-player">github.com/ZiTengXiang/gagaku-player</a>
+  </div>
+</footer>
+
+</body>
+</html>

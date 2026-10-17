@@ -6,4 +6,9 @@ venv/
 # 生成物
 previews/
 *.wav
+!docs/audio/*.wav
 error.log
+dist/
+build/
+*.egg-info/
+.pytest_cache/
