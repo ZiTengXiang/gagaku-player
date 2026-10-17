@@ -35,6 +35,23 @@ def test_opening_a_file_redraws_the_visible_view(app):
         assert view.score.title == "若竹"
 
 
+def test_score_pane_is_not_collapsed_after_slow_start(app):
+    import time
+    app._place_sash()               # まだ表示されていない(幅がほぼ0)状態で呼ばれても
+    app.deiconify()
+    app.geometry("1200x800+20+20")
+    deadline = time.time() + 6
+    while time.time() < deadline:   # 表示されたあとで境目が置かれる
+        app.update()
+        if app._body.sashpos(0) >= app.MIN_LEFT:
+            break
+        time.sleep(0.05)
+    assert app._body.sashpos(0) >= app.MIN_LEFT
+    app._body.sashpos(0, 0)         # 左端まで寄せても
+    app._clamp_sash()
+    assert app._body.sashpos(0) >= app.MIN_LEFT   # 譜面の欄は残る
+
+
 def test_beats_box_rebars_text(app):
     app.beats_var.set("3")
     app._set_beats()

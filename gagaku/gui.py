@@ -89,7 +89,9 @@ class App(tk.Tk):
             self._sync_beats_box()
         self._update_title()
         self._highlight_syntax()
-        self.after(80, lambda: self._body.sashpos(0, int(self.winfo_width() * 0.6)))
+        self.after(80, self._place_sash)
+        # 境目を左端まで寄せて譜面の欄が見えなくならないようにする
+        self._body.bind("<ButtonRelease-1>", lambda e: self._clamp_sash())
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
     # ------------------------------------------------------------ UI 構築
@@ -211,6 +213,23 @@ class App(tk.Tk):
         self.bind_all("<Escape>", lambda e: self.stop())
         self.bind_all("<Control-Shift-F>", lambda e: self.align_text(auto=False))
         self.bind_all("<Control-Shift-f>", lambda e: self.align_text(auto=False))
+
+    # ------------------------------------------------------------ 左右の境目
+    MIN_LEFT = 320   # 譜面の欄の最小幅(px)
+
+    def _place_sash(self, tries: int = 0):
+        """ウィンドウの幅が確定してから、譜面の欄が6割になるよう境目を置く。"""
+        self.update_idletasks()
+        w = self._body.winfo_width()
+        if w < 2 * self.MIN_LEFT and tries < 50:   # まだ表示が終わっていない
+            self.after(100, lambda: self._place_sash(tries + 1))
+            return
+        self._body.sashpos(0, max(self.MIN_LEFT, int(w * 0.6)))
+
+    def _clamp_sash(self):
+        w = self._body.winfo_width()
+        if w >= 2 * self.MIN_LEFT and self._body.sashpos(0) < self.MIN_LEFT:
+            self._body.sashpos(0, self.MIN_LEFT)
 
     # ------------------------------------------------------------ 編集補助
     def insert_text(self, s: str):
