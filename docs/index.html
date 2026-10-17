@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta charset="utf-8">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-YRQ8M99RN2"></script>
 <script>
@@ -10,15 +11,40 @@
 
   gtag('config', 'G-YRQ8M99RN2');
 </script>
-<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>雅楽譜プレイヤー</title>
-<meta name="description" content="雅楽の譜字をテキストで書くと、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する、無料・オープンソースの Python デスクトップアプリ。">
-<meta property="og:title" content="雅楽譜プレイヤー">
-<meta property="og:description" content="雅楽の譜字を書くと、八つの楽器が合奏する。Python 製のオープンソース・デスクトップアプリ。">
+<title>雅楽譜プレイヤー|雅楽の打ち込み・DTM ができる無料アプリ(笙・篳篥・竜笛・琵琶・筝)</title>
+<meta name="description" content="雅楽の譜字をテキストで打ち込むと、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する、無料・オープンソースの雅楽ソフトウェア。DAW や音源なしで雅楽の打ち込み(DTM)ができ、五線譜表示や WAV 書き出しにも対応。Windows・macOS・Linux 用デスクトップアプリ。">
+<link rel="canonical" href="https://zitengxiang.github.io/gagaku-player/">
+<meta property="og:title" content="雅楽譜プレイヤー|雅楽の打ち込み・DTM ができる無料アプリ">
+<meta property="og:description" content="雅楽の譜字を書くと、笙・篳篥・竜笛など八つの楽器が合奏する。無料・オープンソースの雅楽ソフトウェア。">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://zitengxiang.github.io/gagaku-player/">
+<meta property="og:site_name" content="雅楽譜プレイヤー">
+<meta property="og:locale" content="ja_JP">
 <meta property="og:image" content="https://zitengxiang.github.io/gagaku-player/images/score.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="images/icon.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "雅楽譜プレイヤー",
+  "alternateName": "gagaku-player",
+  "description": "雅楽の譜字をテキストで打ち込むと、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する、無料・オープンソースの雅楽ソフトウェア。",
+  "applicationCategory": "MultimediaApplication",
+  "applicationSubCategory": "雅楽の打ち込み・DTM",
+  "operatingSystem": "Windows, macOS, Linux",
+  "softwareVersion": "0.2.0",
+  "inLanguage": "ja",
+  "license": "https://opensource.org/licenses/MIT",
+  "url": "https://zitengxiang.github.io/gagaku-player/",
+  "downloadUrl": "https://pypi.org/project/gagaku-player/",
+  "codeRepository": "https://github.com/ZiTengXiang/gagaku-player",
+  "screenshot": "https://zitengxiang.github.io/gagaku-player/images/score.png",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+  "author": { "@type": "Person", "name": "ZiTengXiang", "url": "https://github.com/ZiTengXiang" }
+}
+</script>
 <style>
   :root {
     --bg: #f8f3e8;
@@ -68,6 +94,10 @@
     letter-spacing: .08em;
   }
   .hero p.tag { margin: 6px 0 0; font-size: 1.15rem; color: var(--muted); }
+  .hero p.sub { margin: 2px 0 0; font-size: .95rem; color: var(--muted); }
+  dl.faq dt { font-weight: bold; margin-top: 14px; }
+  dl.faq dt::before { content: "Q. "; color: var(--accent); }
+  dl.faq dd { margin: 4px 0 0 1.6em; }
   .buttons { margin-top: 26px; display: flex; gap: 12px; flex-wrap: wrap; }
   .btn {
     display: inline-block; padding: 10px 22px; border-radius: 999px; text-decoration: none;
@@ -126,6 +156,7 @@
       <div>
         <h1>雅楽譜プレイヤー</h1>
         <p class="tag">雅楽の譜字を書くと、八つの楽器が合奏する。</p>
+        <p class="sub">雅楽の打ち込み・DTM ができる、無料のデスクトップアプリ(Windows・macOS・Linux)</p>
       </div>
     </div>
     <div class="buttons">
@@ -144,6 +175,12 @@
       <audio controls preload="none" src="audio/wakatake.wav"></audio>
       <small>※ 録音ではなく、プログラムで合成した音です。古典曲ではなく、このアプリのために作った曲です。</small>
     </div>
+  </section>
+
+  <section id="dtm">
+    <h2>雅楽の打ち込み(DTM)を、譜字のままで</h2>
+    <p>雅楽譜プレイヤーは、雅楽の曲を打ち込んで鳴らすためのソフトウェアです。一般的な DTM では、DAW に雅楽の音源を入れ、五線譜やピアノロールに音を置き換えて打ち込みます。このアプリでは、合竹や篳篥・竜笛の譜字、琵琶の柱、筝の弦名を、雅楽の譜面に書かれているとおりにテキストで打ち込めます。それだけで、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生されます。</p>
+    <p>音はすべてアプリの中で合成するので、DAW や音源ソフトを別に買う必要はありません。笙の手移り、篳篥の塩梅、琵琶の掻撥、鞨鼓の来といった雅楽ならではの奏し方を、自動で付けて鳴らします。採譜した曲の確認や、合奏の中での各パートの聴き比べ、雅楽の練習・学習にも使えます。打ち込んだ曲は WAV に書き出して、ほかの DTM ソフトや動画で使えます。</p>
   </section>
 
   <section>
@@ -243,6 +280,24 @@ python main.py examples/wakatake_sojo.gaku</pre>
     <div class="note">
       <p>基準ピッチは A4 = 430 Hz です。笙・篳篥・竜笛の音高は公開資料の表に基づいています。楽琵琶・楽箏の調子ごとの調弦は出典が見つからなかったため、主音と音階から組んだ<strong>暫定値</strong>です(<code>gagaku/tunings.json</code> で書き換えられます)。閑掻・早掻・掻撥・来などの奏法も、手順を簡略化した近似です。正しい調弦や奏法をご存じの方は、<a href="https://github.com/ZiTengXiang/gagaku-player/issues">GitHub の Issues</a> で教えていただけると助かります。</p>
     </div>
+  </section>
+
+  <section id="faq">
+    <h2>よくある質問</h2>
+    <dl class="faq">
+      <dt>雅楽の打ち込み(DTM)に使えますか?</dt>
+      <dd>はい。譜字をテキストで打ち込むと、そのまま合奏として再生できます。テンポ変化、1小節の拍数、小節の間(ま)も設定でき、仕上がった演奏は WAV ファイルに書き出せます。</dd>
+      <dt>無料ですか?</dt>
+      <dd>無料です。MIT ライセンスのオープンソースで、改変や再配布もできます。</dd>
+      <dt>スマートフォンのアプリはありますか?</dt>
+      <dd>いまはパソコン用(Windows・macOS・Linux)のデスクトップアプリだけです。Python 3.10 以上で動きます。</dd>
+      <dt>どの楽器・調子に対応していますか?</dt>
+      <dd>管絃の八つの楽器(笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓)と、六つの調子(壱越調・平調・双調・黄鐘調・盤渉調・太食調)に対応しています。</dd>
+      <dt>雅楽の楽譜(譜字)が読めなくても使えますか?</dt>
+      <dd>譜字パレットから楽器ごとの譜字をクリックで入力でき、五線譜タブでは各音を五線譜で確かめられます。サンプル曲も入っているので、まずは <code>gagaku-player --demo</code> で聴いてみてください。</dd>
+      <dt>音は録音ですか?</dt>
+      <dd>録音ではなく、プログラムで合成した音です。実際の楽器の音色に近づけていますが、本物の演奏とは違いがあります。</dd>
+    </dl>
   </section>
 
   <section>
