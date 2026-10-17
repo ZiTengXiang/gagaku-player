@@ -68,8 +68,8 @@ def test_repeated_notes_have_clear_break():
 def test_biwa_sweep_divides_the_note_length(beat_sec, beats):
     from gagaku import instruments as I
     dur = beats * beat_sec
-    # 4本: 8等分の 1・3・4・5 番目、3本: 4等分の 1・2・3 番目(次の音までの長さに対して)
-    assert I.Biwa.sweep_times(4, dur, beat_sec) == pytest.approx([0, dur * 2 / 8, dur * 3 / 8, dur * 4 / 8])
+    # 4本: 6等分の 1・3・4・5 番目、3本: 4等分の 1・2・3 番目(次の音までの長さに対して)
+    assert I.Biwa.sweep_times(4, dur, beat_sec) == pytest.approx([0, dur * 2 / 6, dur * 3 / 6, dur * 4 / 6])
     assert I.Biwa.sweep_times(3, dur, beat_sec) == pytest.approx([0, dur / 4, dur * 2 / 4])
     # 2本は拍の前半を等分(音の長さによらない)
     assert I.Biwa.sweep_times(2, dur, beat_sec) == pytest.approx([0, beat_sec / 4])
