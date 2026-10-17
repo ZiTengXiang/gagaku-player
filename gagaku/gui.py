@@ -11,6 +11,7 @@ from tkinter import filedialog, font as tkfont, messagebox, ttk
 
 from . import instruments, render, score as score_mod
 from .audio import Player
+from .scoreview import ScoreView
 
 TEMPLATE = """title: 新しい曲
 mode: 平調
@@ -111,8 +112,13 @@ class App(tk.Tk):
         body = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         body.pack(fill=tk.BOTH, expand=True)
 
-        # エディタ
-        left = ttk.Frame(body)
+        # 左: 「譜面テキスト」(編集) と「楽譜表示」(全楽器を拍でそろえた総譜) のタブ
+        self.left_tabs = ttk.Notebook(body)
+        left = ttk.Frame(self.left_tabs)
+        self.left_tabs.add(left, text="譜面テキスト")
+        self.score_view = ScoreView(self.left_tabs, self.edit_font.cget("family"), on_click=self._jump_to_event)
+        self.left_tabs.add(self.score_view, text="楽譜表示")
+        self.left_tabs.bind("<<NotebookTabChanged>>", lambda e: self._refresh_score_view())
         self.text = tk.Text(left, font=self.edit_font, undo=True, wrap=tk.NONE,
                             padx=8, pady=6, insertwidth=2)
         ys = ttk.Scrollbar(left, orient=tk.VERTICAL, command=self.text.yview)
@@ -130,7 +136,7 @@ class App(tk.Tk):
         self.text.bind("<<Modified>>", self._on_modified)
         self.text.bind("<KeyRelease>", lambda e: self._update_status())
         self.text.bind("<ButtonRelease-1>", lambda e: self._update_status())
-        body.add(left, weight=3)
+        body.add(self.left_tabs, weight=3)
 
         # 右パネル: パレット + ミキサー
         right = ttk.Frame(body, padding=4)
@@ -277,6 +283,30 @@ class App(tk.Tk):
         self._update_status(f"保存しました: {self.path}")
         return True
 
+    # ------------------------------------------------------------ 楽譜表示
+    def _score_tab_visible(self) -> bool:
+        return self.left_tabs.select() == str(self.score_view)
+
+    def _refresh_score_view(self):
+        """楽譜表示タブが見えているときに、現在のテキストから描き直す(再生中は再生中の譜面のまま)。"""
+        if not self._score_tab_visible() or self.playing:
+            return
+        try:
+            sc = score_mod.parse(self.text.get("1.0", "end-1c"))
+        except score_mod.ScoreError as e:
+            self.score_view.set_message(f"譜面エラー: {e}")
+            return
+        self.score_view.set_score(sc)
+
+    def _jump_to_event(self, ev):
+        """楽譜表示で音をクリック → テキストの該当トークンにカーソルを置く(F6でそこから再生)。"""
+        idx = f"{ev.line}.{ev.col}"
+        self.text.mark_set(tk.INSERT, idx)
+        self.text.tag_remove(tk.SEL, "1.0", tk.END)
+        self.text.tag_add(tk.SEL, idx, f"{ev.line}.{ev.col_end}")
+        self.text.see(idx)
+        self._update_status(f"{ev.line}行の「{ev.symbol}」を選択(F6 でここから再生)")
+
     # ------------------------------------------------------------ 解析・レンダ
     def _parse(self):
         self.text.tag_remove("error", "1.0", tk.END)
@@ -350,6 +380,7 @@ class App(tk.Tk):
             self.play_t0 = time.perf_counter()
             self.playing = True
             self.duration = len(data) / render.SR
+            self.score_view.set_score(sc)  # 再生中の譜面と同じ音符オブジェクトでハイライトする
             msg = f"再生中 ({sc.title or '無題'} / {sc.mode} / {sc.tempo:g} BPM)"
             if sc.warnings:
                 msg += "  ⚠ " + " / ".join(sc.warnings)
@@ -365,14 +396,21 @@ class App(tk.Tk):
         self.text.tag_remove("playing", "1.0", tk.END)
         hi = bisect.bisect_right(self._starts, now)
         first = None
+        active = []
         for ev in self.events[max(0, hi - 200):hi]:
             if ev.start_sec <= now < ev.end_sec:
                 self.text.tag_add("playing", f"{ev.line}.{ev.col}", f"{ev.line}.{ev.col_end}")
+                active.append(ev)
                 first = first or ev
+        self.score_view.set_active(active)
         if first is not None:
-            self.text.see(f"{first.line}.{first.col}")
+            if self._score_tab_visible():
+                self.score_view.see_event(first)
+            else:
+                self.text.see(f"{first.line}.{first.col}")
         if now >= self.duration:
             self.playing = False
+            self.score_view.set_active([])
             self._update_status("再生終了")
             return
         self.after(40, self._tick)
@@ -381,6 +419,7 @@ class App(tk.Tk):
         self.player.stop()
         self.playing = False
         self.text.tag_remove("playing", "1.0", tk.END)
+        self.score_view.set_active([])
 
     def export_wav(self):
         sc = self._parse()

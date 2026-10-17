@@ -72,6 +72,17 @@ class Score:
     tempo_changes: list[tuple[Fraction, float]] = field(default_factory=list)
     part_lengths: dict[str, Fraction] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    bar_lines: dict[str, list[Fraction]] = field(default_factory=dict)  # パートごとの小節線の拍位置
+
+    def bars(self, default_len: int = 4) -> list[tuple[Fraction, Fraction]]:
+        """小節の (開始拍, 終了拍) のリスト。小節線が最も多いパートの | を基準にする。"""
+        total = max(self.part_lengths.values(), default=Fraction(0))
+        lines = max(self.bar_lines.values(), key=len, default=[])
+        starts = sorted({Fraction(0), *[b for b in lines if 0 < b < total]})
+        if len(starts) <= 1:
+            starts = [Fraction(i) for i in range(0, int(total) + 1, default_len) if i < total] or [Fraction(0)]
+        ends = starts[1:] + [max(total, starts[-1] + 1)]
+        return list(zip(starts, ends))
 
 
 def _to_halfwidth(s: str) -> str:
@@ -148,6 +159,9 @@ def parse(text: str) -> Score:
         inst = instruments.INSTRUMENTS[current]
         for tok, c0, c1 in _tokenize(raw):
             if tok in BAR_TOKENS:
+                lines = score.bar_lines.setdefault(current, [])
+                if not lines or lines[-1] != cursors[current]:
+                    lines.append(cursors[current])
                 continue
             if tok in REST_TOKENS:
                 cursors[current] += 1
