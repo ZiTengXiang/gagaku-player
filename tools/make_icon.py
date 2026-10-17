@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-HERE = Path(__file__).parent
+HERE = Path(__file__).resolve().parent.parent / "gagaku" / "assets"
 S = 256
 
 img = Image.new("RGBA", (S, S), (0, 0, 0, 0))

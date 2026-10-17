@@ -52,7 +52,7 @@ class App(tk.Tk):
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f"{int(sw * 0.85)}x{int(sh * 0.82)}+{int(sw * 0.05)}+{int(sh * 0.04)}")
         self.minsize(900, 560)
-        assets = Path(__file__).resolve().parent.parent / "assets"
+        assets = Path(__file__).resolve().parent / "assets"
         try:
             self._icon = tk.PhotoImage(file=str(assets / "gagaku.png"))
             self.iconphoto(True, self._icon)
@@ -535,3 +535,30 @@ def main(path: str | None = None):
         except Exception:  # noqa: BLE001
             pass
     App(path).mainloop()
+
+
+def examples_dir() -> Path | None:
+    """サンプル譜のフォルダ(pip で入れた場合はパッケージ内、ソースからならリポジトリの examples/)。"""
+    here = Path(__file__).resolve().parent
+    for d in (here / "examples", here.parent / "examples"):
+        if d.is_dir():
+            return d
+    return None
+
+
+def cli():
+    """コマンド `gagaku-player [譜面.gaku | --demo | --version]` の入口。"""
+    import argparse
+
+    from . import __version__
+
+    ap = argparse.ArgumentParser(prog="gagaku-player", description="雅楽譜プレイヤー")
+    ap.add_argument("score", nargs="?", help="開く譜面ファイル(.gaku)")
+    ap.add_argument("--demo", action="store_true", help="サンプル曲「若竹」を開く")
+    ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    args = ap.parse_args()
+    path = args.score
+    if args.demo:
+        d = examples_dir()
+        path = str(d / "wakatake_sojo.gaku") if d else None
+    main(path)

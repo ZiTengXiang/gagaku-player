@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gagaku-player"
+dynamic = ["version"]
+description = "雅楽の譜字をテキストで書くと、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生するデスクトップアプリ"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "ZiTengXiang" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "sounddevice>=0.4; platform_system != 'Windows'",  # Windows では標準の winsound で再生する
+]
+keywords = ["gagaku", "雅楽", "music", "notation", "synthesizer", "japanese traditional music"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: Japanese",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio :: Sound Synthesis",
+    "Topic :: Multimedia :: Sound/Audio :: Players",
+]
+
+[project.urls]
+Homepage = "https://zitengxiang.github.io/gagaku-player/"
+Source = "https://github.com/ZiTengXiang/gagaku-player"
+Issues = "https://github.com/ZiTengXiang/gagaku-player/issues"
+
+[project.gui-scripts]
+gagaku-player = "gagaku.gui:cli"
+
+[tool.hatch.version]
+path = "gagaku/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gagaku"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"examples" = "gagaku/examples"   # pip で入れても --demo でサンプル曲を開けるように
+
+[tool.hatch.build.targets.sdist]
+include = ["gagaku", "examples", "tests", "tools", "main.py", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,8 +1,23 @@
 # 雅楽譜プレイヤー
 
+[![CI](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/gagaku-player)](https://pypi.org/project/gagaku-player/)
+
 雅楽の譜字をテキストで入力すると、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する Python デスクトップアプリ。
 
+紹介サイト: https://zitengxiang.github.io/gagaku-player/
+
 ## インストールと起動
+
+pip で入れる場合:
+
+```bash
+pip install gagaku-player
+gagaku-player --demo          # サンプル曲「若竹」を開く
+gagaku-player 曲.gaku         # 譜面を開く
+```
+
+ソースから動かす場合:
 
 ```bash
 git clone https://github.com/ZiTengXiang/gagaku-player.git
@@ -11,9 +26,9 @@ pip install -r requirements.txt
 python main.py examples/demo_hyojo.gaku
 ```
 
-- 必要なもの: Python 3.10+、numpy(tkinter は Python に標準添付)。
-- Windows では追加のインストールは不要(再生に標準の `winsound` を使う)。macOS/Linux で再生するには `pip install sounddevice` も入れる。
-- Windows でアイコンから起動したい場合は、`pythonw.exe main.py` を実行するショートカットを作り、アイコンに `assets/gagaku.ico` を指定する(`pythonw` ならコンソール画面が出ない)。アイコンは `python assets/make_icon.py` で作り直せる(Pillow と游明朝フォントが必要)。
+- 必要なもの: Python 3.10+、numpy(tkinter は Python に標準添付)。`python -m gagaku` でも起動できる。
+- Windows では追加のインストールは不要(再生に標準の `winsound` を使う)。macOS/Linux では pip で入れると再生用の `sounddevice` も入る(ソースから動かす場合は `pip install sounddevice`)。
+- Windows でアイコンから起動したい場合は、`pythonw.exe main.py` を実行するショートカットを作り、アイコンに `gagaku/assets/gagaku.ico` を指定する(`pythonw` ならコンソール画面が出ない)。アイコンは `python tools/make_icon.py` で作り直せる(Pillow と游明朝フォントが必要)。
 - コンソールなしで起動して落ちた場合は、`error.log` に詳細を書き出してダイアログを出す。
 
 ## 画面
@@ -107,10 +122,24 @@ gagaku/gui.py           Tkinter GUI
 gagaku/scoreview.py     楽譜表示(1段5小節の総譜)
 gagaku/formatter.py     譜面テキストの整形(拍頭を縦にそろえる)
 gagaku/staffview.py     五線譜表示(字譜つき)
-examples/               サンプル譜
+gagaku/assets/          アイコン
+examples/               サンプル譜(pip 版ではパッケージ内に同梱)
 tools/make_previews.py  楽器ごとの試聴用WAVを書き出す
-assets/                 アイコン
+tools/make_icon.py      アイコンを作り直す
+tests/                  pytest のテスト
+docs/                   紹介サイト(GitHub Pages)
+.github/workflows/      CI(テスト・ビルド)と PyPI への公開
 ```
+
+## 開発
+
+```bash
+pip install -e . pytest
+python -m pytest
+```
+
+- push や pull request のたびに、GitHub Actions が Windows / Ubuntu × Python 3.10〜3.13 でテストし、パッケージをビルドする(`.github/workflows/ci.yml`)。
+- PyPI への公開は、`gagaku/__init__.py` の `__version__` を上げてから、同じ番号のタグ(例 `v0.1.1`)で GitHub のリリースを作ると自動で行われる(`.github/workflows/publish.yml`、Trusted Publishing)。
 
 ## ライセンス
 
