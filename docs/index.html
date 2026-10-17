@@ -114,6 +114,11 @@
   .listen { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
   .listen audio { width: 100%; margin-top: 8px; }
   .listen small { color: var(--muted); }
+  .demos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 700px) { .demos { grid-template-columns: 1fr; } }
+  .listen h3 { margin: 0; font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 1.25rem; }
+  .listen h3 .mode { font-size: .85rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 0 6px; margin-left: 6px; vertical-align: .15em; font-family: inherit; }
+  .listen p { margin: 4px 0 0; font-size: .95rem; }
   .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
   .card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
   .card h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
@@ -170,10 +175,32 @@
 
   <section>
     <h2>聴いてみる</h2>
-    <div class="listen">
-      オリジナル曲「若竹」(双調)の冒頭。笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓をすべてこのアプリで合成しています。
-      <audio controls preload="none" src="audio/wakatake.wav"></audio>
-      <small>※ 録音ではなく、プログラムで合成した音です。古典曲ではなく、このアプリのために作った曲です。</small>
+    <p>どの曲も、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓をこのアプリで合成しています。録音ではありません。</p>
+    <div class="demos">
+      <div class="listen">
+        <h3>越天楽 <span class="mode">平調</span></h3>
+        <p>雅楽を代表する古典曲。このアプリで採譜を進めている版です。</p>
+        <audio controls preload="none" src="audio/etenraku.mp3"></audio>
+        <small>約1分39秒。採譜中のため、17小節目以降は笙・篳篥・竜笛だけで、ほかのパートはまだ入っていません。</small>
+      </div>
+      <div class="listen">
+        <h3>若竹 <span class="mode">双調</span></h3>
+        <p>明るく動きのある旋律で、段ごとに速まり終止で落ち着きます。</p>
+        <audio controls preload="none" src="audio/wakatake.mp3"></audio>
+        <small>約53秒。このアプリのために作ったオリジナル曲(古典曲ではありません)。</small>
+      </div>
+      <div class="listen">
+        <h3>朝霞 <span class="mode">壱越調</span></h3>
+        <p>ゆっくり始まって次第に速まり、最後の小節で緩みます。</p>
+        <audio controls preload="none" src="audio/asagasumi.mp3"></audio>
+        <small>約1分24秒。このアプリのために作ったオリジナル曲(古典曲ではありません)。</small>
+      </div>
+      <div class="listen">
+        <h3>月影 <span class="mode">黄鐘調</span></h3>
+        <p>前奏は笙と竜笛だけでゆったりと始まり、5小節目から全員が加わります。</p>
+        <audio controls preload="none" src="audio/tsukikage.mp3"></audio>
+        <small>約1分10秒。このアプリのために作ったオリジナル曲(古典曲ではありません)。</small>
+      </div>
     </div>
   </section>
 
