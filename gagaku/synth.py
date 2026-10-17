@@ -141,8 +141,23 @@ def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
         prev, cur = notes[i - 1], notes[i]
         a, b = bounds[i]
         span = b - a
+        if prev.freq == cur.freq and kind == "hichiriki":
+            # 篳篥: 同じ譜字が続くときは、いったん息を止めて吹き直す(切れ目をはっきり)。
+            # 前の音の終わりを短く消して無音を挟み、次の音は下からすくい上げて入る。
+            pa, pb = bounds[i - 1]
+            prev_span = pb - pa
+            fo = max(1, min(_n(0.025), prev_span // 6))   # フェードアウト
+            gap = max(1, min(_n(0.040), prev_span // 5))  # 無音
+            fi = max(1, min(_n(0.045), span // 4))        # 吹き直しの立ち上がり
+            s0 = max(0, a - gap - fo)
+            amp[s0:a - gap] *= np.linspace(1, 0, a - gap - s0) ** 1.5
+            amp[a - gap:a] = 0
+            amp[a:a + fi] *= np.linspace(0, 1, fi) ** 1.2
+            sb = max(1, min(_n(0.14), span // 2))
+            cents[a:a + sb] += -70 * (1 - smoothstep(np.linspace(0, 1, sb))) ** 1.3
+            continue
         if prev.freq == cur.freq:
-            # 同じ音の連続は指打ちで切る(音量を一瞬落とす)
+            # 竜笛: 同じ音の連続は指打ちで切る(音量を一瞬落とす)
             d = min(_n(0.06), span // 3)
             dip = np.ones(2 * d)
             dip[:d] = np.linspace(1, 0.25, d)

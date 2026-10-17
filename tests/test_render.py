@@ -48,6 +48,21 @@ def test_write_wav(tmp_path):
         assert w.getnframes() == len(data)
 
 
+def _min_level_near(w, t, sr):
+    win = int(0.005 * sr)
+    rms = np.sqrt(np.convolve(w ** 2, np.ones(win) / win, mode="same"))
+    steady = rms[int((t - 0.5) * sr)]
+    return rms[int((t - 0.12) * sr):int((t + 0.12) * sr)].min() / steady
+
+
+def test_hichiriki_repeated_notes_have_clear_break():
+    from gagaku import instruments as I, synth
+    f = I.hz("E5")
+    notes = [synth.PhraseNote(0, 1, f), synth.PhraseNote(1, 2, f)]
+    assert _min_level_near(synth.hichiriki_phrase(notes), 1.0, synth.SR) < 0.01   # ほぼ無音を挟む
+    assert _min_level_near(synth.ryuteki_phrase(notes), 1.0, synth.SR) > 0.1      # 竜笛は従来どおり
+
+
 def test_biwa_four_string_sweep_rhythm():
     from gagaku import instruments as I, synth
     b = I.INSTRUMENTS["biwa"]
