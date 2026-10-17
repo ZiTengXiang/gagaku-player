@@ -309,6 +309,7 @@ class App(tk.Tk):
     def new_file(self):
         if not self._confirm_discard():
             return
+        self.stop()
         self.text.delete("1.0", tk.END)
         self.text.insert("1.0", TEMPLATE)
         self.text.edit_modified(False)
@@ -316,6 +317,7 @@ class App(tk.Tk):
         self._dirty = False
         self._update_title()
         self._sync_beats_box()
+        self._refresh_score_view()
 
     def ask_open(self):
         if not self._confirm_discard():
@@ -325,6 +327,7 @@ class App(tk.Tk):
             self.open_file(Path(p))
 
     def open_file(self, p: Path):
+        self.stop()
         self.text.delete("1.0", tk.END)
         self.text.insert("1.0", p.read_text(encoding="utf-8-sig"))
         self.text.mark_set(tk.INSERT, "1.0")
@@ -336,6 +339,7 @@ class App(tk.Tk):
         self._update_title()
         self._highlight_syntax()
         self._sync_beats_box()
+        self._refresh_score_view()   # 楽譜表示・五線譜タブを開いたままでも新しい譜面に描き直す
 
     # ------------------------------------------------------------ 1小節の拍数
     def _sync_beats_box(self):
