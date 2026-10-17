@@ -1,5 +1,4 @@
 import wave
-from fractions import Fraction
 
 import numpy as np
 import pytest
@@ -65,10 +64,21 @@ def test_repeated_notes_have_clear_break():
         assert _min_level_near(phrase(moving), 1.0, synth.SR) > 0.3    # 違う音へはつないで動く
 
 
-def test_biwa_four_string_sweep_rhythm():
-    from gagaku import instruments as I, synth
-    b = I.INSTRUMENTS["biwa"]
-    base = len(b.render("丄", 0, 4.0, "平調", beat_sec=1e-9))
-    n = len(b.render("丄", 0, 4.0, "平調", beat_sec=1.0))
-    last_stroke_beats = (n - base) / synth.SR
-    assert last_stroke_beats == pytest.approx(float(Fraction(3, 4)), abs=1e-3)
+@pytest.mark.parametrize("beat_sec, beats", [(1.0, 2), (1.0, 4), (0.5, 2)])
+def test_biwa_sweep_divides_the_note_length(beat_sec, beats):
+    from gagaku import instruments as I
+    dur = beats * beat_sec
+    # 4本: 8等分の 1・3・4・5 番目、3本: 4等分の 1・2・3 番目(次の音までの長さに対して)
+    assert I.Biwa.sweep_times(4, dur, beat_sec) == pytest.approx([0, dur * 2 / 8, dur * 3 / 8, dur * 4 / 8])
+    assert I.Biwa.sweep_times(3, dur, beat_sec) == pytest.approx([0, dur / 4, dur * 2 / 4])
+    # 2本は拍の前半を等分(音の長さによらない)
+    assert I.Biwa.sweep_times(2, dur, beat_sec) == pytest.approx([0, beat_sec / 4])
+
+
+def test_kakko_roll_is_slower_and_follows_tempo():
+    from gagaku import instruments as I
+    slow = I.Kakko.roll_times("片来", 3.0, 1.0)           # tempo=60, 3拍
+    fast = I.Kakko.roll_times("片来", 1.5, 0.5)           # tempo=120, 3拍
+    assert slow[1] == pytest.approx(0.22 / I.KAKKO_ROLL_SPEED)
+    assert [t / 1.0 for t in slow] == pytest.approx([t / 0.5 for t in fast])   # 拍で見ると同じ
+    assert all(b > a for a, b in zip(slow, slow[1:]))

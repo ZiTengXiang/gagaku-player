@@ -286,11 +286,12 @@ BIWA_GRID = [  # [弦][柱]  柱0 = 開放
     ["丄", "八", "丨", "ム", "也"],
 ]
 BIWA_POS = {s: (i, j) for i, row in enumerate(BIWA_GRID) for j, s in enumerate(row)}
-# 掻撥のリズム: 弦の本数 → 各弦を鳴らす位置(拍)。
-# ここにない本数(2・3本)は、拍の前半を弦の数で等分する。
+# 掻撥のリズム: 弦の本数 → 各弦を鳴らす位置。
+# 位置は「その音の長さ(次の音か休み . までの時間)」に対する割合。
+# ここにない本数(2本)は、拍の前半を弦の数で等分する。
 BIWA_SWEEP_RHYTHM = {
-    # 4本: 前半の頭で1音、後半を4等分したうちの初めの3区画で3音
-    4: [0, 4 / 8, 5 / 8, 6 / 8],
+    4: [0, 2 / 8, 3 / 8, 4 / 8],   # 8等分した 1・3・4・5 番目
+    3: [0, 1 / 4, 2 / 4],          # 4等分した 1・2・3 番目
 }
 
 
@@ -314,6 +315,14 @@ class Biwa(Instrument):
     def _note(self, s, f, mode):
         return _TUNINGS["biwa"][mode][s][f]
 
+    @staticmethod
+    def sweep_times(n_strings: int, dur: float, beat_sec: float) -> list[float]:
+        """掻撥で各弦を鳴らす時刻(音の頭からの秒)。"""
+        if n_strings in BIWA_SWEEP_RHYTHM:
+            return [dur * p for p in BIWA_SWEEP_RHYTHM[n_strings]]
+        span = min(beat_sec, dur)
+        return [span * 0.5 * i / n_strings for i in range(n_strings)]
+
     def staff_pitches(self, sym, octave, mode):
         single = sym.startswith("単")
         s, f = BIWA_POS[sym[1:] if single else sym]
@@ -333,12 +342,10 @@ class Biwa(Instrument):
             return tone(self._note(s, f, mode)) * 0.6
         # 掻撥: 低い弦(開放)から目的の弦まで撥で掻き下ろす(第3・4弦なら3〜4本)。
         # 第1・2弦が目的のときは割撥風に隣の弦と2本で弾く。
-        # 2・3本は拍の前半を弦の数で等分する。4本は BIWA_SWEEP_RHYTHM のリズム。
-        # 音符が1拍より短いときは、その音符の長さを1拍とみなす。
+        # 3・4本は、その音の長さを BIWA_SWEEP_RHYTHM の割合で分けた位置で鳴らす。
+        # 2本は拍の前半を等分する(音符が1拍より短いときは、その長さを1拍とみなす)。
         order = list(range(0, s + 1)) if s >= 1 else [0]
-        span = min(beat_sec, dur)
-        pos = BIWA_SWEEP_RHYTHM.get(len(order)) or [0.5 * i / len(order) for i in range(len(order))]
-        starts = [synth._n(span * p) if p else 0 for p in pos]
+        starts = [synth._n(t) if t > 0 else 0 for t in self.sweep_times(len(order), dur, beat_sec)]
         total = starts[-1] + synth._n(ring)
         out = np.zeros(total)
         for i, st in enumerate(order):
@@ -412,6 +419,9 @@ class Koto(Instrument):
 
 # ------------------------------------------------------------------ 打楽器
 
+KAKKO_ROLL_SPEED = 0.3   # 来の連打の速さ(1.0 = もとの速さ。0.3 なら間隔が約3.3倍)
+
+
 class Kakko(Instrument):
     key = "kakko"
     display = "鞨鼓"
@@ -423,15 +433,26 @@ class Kakko(Instrument):
     def _hit(self, amp, right=True):
         return synth.kakko_hit(right) * amp
 
-    def render(self, sym, octave, dur, mode, beat_sec=1.0):
-        if sym == "正":
-            return self._hit(1.0)
-        # 来: 打ち始めは間遠く次第に速くなるロール
-        times, t, gap = [], 0.0, 0.22 if sym != "諸来" else 0.16
+    @staticmethod
+    def roll_times(sym: str, dur: float, beat_sec: float) -> list[float]:
+        """来の各打の時刻(音の頭からの秒)。打ち始めは間遠く、次第に速くなる。
+
+        間隔は tempo=60(1拍1秒)のときの値を基準に、テンポに比例して変わる。
+        """
+        scale = beat_sec / KAKKO_ROLL_SPEED
+        gap = (0.22 if sym != "諸来" else 0.16) * scale
+        min_gap = 0.035 * scale
+        times, t = [], 0.0
         while t < dur * 0.92:
             times.append(t)
             t += gap
-            gap = max(0.035, gap * 0.82)
+            gap = max(min_gap, gap * 0.82)
+        return times
+
+    def render(self, sym, octave, dur, mode, beat_sec=1.0):
+        if sym == "正":
+            return self._hit(1.0)
+        times = self.roll_times(sym, dur, beat_sec)
         out = np.zeros(synth._n(dur + 0.4))
         for i, t0 in enumerate(times):
             right = (i % 2 == 0) if sym == "諸来" else False
