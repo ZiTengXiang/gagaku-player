@@ -52,6 +52,19 @@ def test_score_pane_is_not_collapsed_after_slow_start(app):
     assert app._body.sashpos(0) >= app.MIN_LEFT   # 譜面の欄は残る
 
 
+def test_ma_toggle_writes_and_removes_header(app):
+    from gagaku import score
+    app.ma_len.set("0.5")
+    app.ma_on.set(True)
+    app._set_ma()
+    text = app.text.get("1.0", "end-1c")
+    assert "ma: 0.5" in text and score.parse(text).ma_beats == score.Fraction(1, 2)
+    app.ma_on.set(False)
+    app._set_ma()
+    text = app.text.get("1.0", "end-1c")
+    assert "ma:" not in text and score.parse(text).ma_beats == 0
+
+
 def test_beats_box_rebars_text(app):
     app.beats_var.set("3")
     app._set_beats()

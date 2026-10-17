@@ -6,6 +6,7 @@ import re
 import threading
 import time
 import tkinter as tk
+from fractions import Fraction
 from pathlib import Path
 from tkinter import filedialog, font as tkfont, messagebox, ttk
 
@@ -42,6 +43,11 @@ tempo: 60
 [太鼓]
 . . 図 百 |
 """
+
+def _fmt_beats(x) -> str:
+    """拍数を '1' '0.5' '1.25' のように書く。"""
+    return f"{float(x):g}"
+
 
 FILETYPES = [("雅楽譜", "*.gaku"), ("テキスト", "*.txt"), ("すべて", "*.*")]
 
@@ -87,6 +93,7 @@ class App(tk.Tk):
             self.text.edit_modified(False)
             self._dirty = False
             self._sync_beats_box()
+            self._sync_ma_box()
         self._update_title()
         self._highlight_syntax()
         self.after(80, self._place_sash)
@@ -114,6 +121,16 @@ class App(tk.Tk):
         beats_box.pack(side=tk.LEFT)
         beats_box.bind("<Return>", lambda e: self._set_beats())
         beats_box.bind("<FocusOut>", lambda e: self._set_beats())
+        ttk.Label(bar, text="拍").pack(side=tk.LEFT, padx=(0, 10))
+        # 小節の間(ま): オンにすると各小節の終わりに間を挟み、その間は鳴っている音を延ばす
+        self.ma_on = tk.BooleanVar(value=False)
+        self.ma_len = tk.StringVar(value="1")
+        ttk.Checkbutton(bar, text="小節の間(ま)", variable=self.ma_on, command=self._set_ma).pack(side=tk.LEFT)
+        ma_box = ttk.Spinbox(bar, from_=0.25, to=16, increment=0.25, width=4, textvariable=self.ma_len,
+                             command=self._set_ma)
+        ma_box.pack(side=tk.LEFT)
+        ma_box.bind("<Return>", lambda e: self._set_ma())
+        ma_box.bind("<FocusOut>", lambda e: self._set_ma())
         ttk.Label(bar, text="拍").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Label(bar, text="速さ").pack(side=tk.LEFT)
         self.speed = tk.DoubleVar(value=100)
@@ -345,6 +362,7 @@ class App(tk.Tk):
         self._dirty = False
         self._update_title()
         self._sync_beats_box()
+        self._sync_ma_box()
         self._refresh_score_view()
 
     def ask_open(self):
@@ -367,6 +385,7 @@ class App(tk.Tk):
         self._update_title()
         self._highlight_syntax()
         self._sync_beats_box()
+        self._sync_ma_box()
         self._refresh_score_view()   # 楽譜表示・五線譜タブを開いたままでも新しい譜面に描き直す
 
     # ------------------------------------------------------------ 1小節の拍数
@@ -393,13 +412,25 @@ class App(tk.Tk):
             return
         if val == getattr(self, "_beats_applied", None):
             return
+        self._write_header(score_mod.BEATS_KEYS, f"beats: {val}")
+        self._beats_applied = val
+        self.align_text(auto=True)
+        self._highlight_syntax()
+        self._refresh_score_view()
+        self._update_status(f"1小節 {val} 拍で区切り直しました")
+
+    def _write_header(self, keys, new_line: str | None):
+        """ヘッダの keys のいずれかの行を new_line に置き換える(なければ追加、None なら削除)。"""
         lines = self.text.get("1.0", "end-1c").split("\n")
         first_sec = next((i for i, ln in enumerate(lines) if score_mod.section_header_end(ln) is not None),
                          len(lines))
-        new_line = f"beats: {val}"
-        key_re = re.compile(r"^\s*(beats|拍子|拍数)\s*[:：]", re.I)
+        key_re = re.compile(r"^\s*(" + "|".join(map(re.escape, keys)) + r")\s*[:：]", re.I)
         idx = next((i for i in range(first_sec) if key_re.match(lines[i])), None)
-        if idx is not None:
+        if new_line is None:
+            if idx is None:
+                return
+            del lines[idx]
+        elif idx is not None:
             lines[idx] = new_line
         else:
             # ヘッダの最後の「key: 値」行の後ろに入れる
@@ -410,11 +441,37 @@ class App(tk.Tk):
         self.text.delete("1.0", tk.END)
         self.text.insert("1.0", "\n".join(lines))
         self.text.edit_separator()
-        self._beats_applied = val
-        self.align_text(auto=True)
         self._highlight_syntax()
-        self._refresh_score_view()
-        self._update_status(f"1小節 {val} 拍で区切り直しました")
+
+    # ------------------------------------------------------------ 小節の間(ま)
+    def _sync_ma_box(self):
+        try:
+            sc = score_mod.parse(self.text.get("1.0", "end-1c"))
+        except score_mod.ScoreError:
+            return
+        on = sc.ma_beats > 0
+        self.ma_on.set(on)
+        if on:
+            self.ma_len.set(_fmt_beats(sc.ma_beats))
+        self._ma_applied = (on, self.ma_len.get())
+
+    def _set_ma(self):
+        """「間あり / 間なし」と間の長さをヘッダ ma: に書く(間なしなら行を消す)。"""
+        txt = self.ma_len.get().strip().translate(str.maketrans("０１２３４５６７８９．／", "0123456789./"))
+        try:
+            length = Fraction(txt)
+        except (ValueError, ZeroDivisionError):
+            length = Fraction(0)
+        if not 0 < length <= 16:
+            self.ma_len.set(getattr(self, "_ma_applied", (False, "1"))[1])
+            return
+        state = (bool(self.ma_on.get()), _fmt_beats(length))
+        if state == getattr(self, "_ma_applied", None):
+            return
+        self._write_header(score_mod.MA_KEYS, f"ma: {state[1]}" if state[0] else None)
+        self._ma_applied = state
+        self._update_status(f"小節の間(ま): {state[1]} 拍(再生・書き出しに反映)" if state[0]
+                            else "小節の間(ま)なし(インテンポ)")
 
     def save(self) -> bool:
         if self.path is None:

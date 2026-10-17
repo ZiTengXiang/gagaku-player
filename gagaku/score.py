@@ -39,6 +39,7 @@ TOKEN_RE = re.compile(
 EXTEND_DUR_RE = re.compile(r"^[-ー―－‐][:：](?P<dur>[0-9０-９./／]+)$")
 TEMPO_RE = re.compile(r"^(?:tempo|テンポ)[=＝:：](?P<bpm>[0-9.]+)$", re.I)
 BEATS_KEYS = ("beats", "拍子", "拍数")   # 1小節の拍数のヘッダ名
+MA_KEYS = ("ma", "間", "間合い")         # 小節の間に取る「間(ま)」の長さ(拍)のヘッダ名
 HEADER_RE = re.compile(r"^(?P<key>[A-Za-z_一-龥ぁ-んァ-ヶ]+)\s*[:：]\s*(?P<val>.*)$")
 # [楽器名] の後ろに同じ行で音符を続けてもよい(整形後の書式)
 SECTION_RE = re.compile(r"^\[(?P<name>[^\]]+)\](?P<rest>.*)$")
@@ -88,6 +89,9 @@ class Score:
     bar_lines: dict[str, list[Fraction]] = field(default_factory=dict)  # パートごとの小節線の拍位置
     tempo_marks: list[tuple[str, Fraction, str]] = field(default_factory=list)  # (パート, 拍, 元の tempo= トークン)
     beats_per_bar: int | None = None   # ヘッダ beats: で指定された1小節の拍数
+    # ヘッダ ma: で指定された「間(ま)」の長さ(拍)。0 なら間なし(インテンポ)。
+    # 間ありでは、各小節の終わりにこの長さの間を挟み、その間は鳴っている音を延ばす。
+    ma_beats: Fraction = Fraction(0)
 
     def bars(self, default_len: int = 4) -> list[tuple[Fraction, Fraction]]:
         """小節の (開始拍, 終了拍) のリスト。
@@ -183,6 +187,14 @@ def parse(text: str) -> Score:
                 if not v.isdigit() or int(v) < 1:
                     raise ScoreError(f"1小節の拍数 '{val}' は1以上の整数にしてください", lineno)
                 score.beats_per_bar = int(v)
+            elif key in MA_KEYS:
+                try:
+                    ma = Fraction(_to_halfwidth(val))
+                except (ValueError, ZeroDivisionError):
+                    raise ScoreError(f"間(ま)の長さ '{val}' が数値ではありません", lineno)
+                if ma < 0:
+                    raise ScoreError("間(ま)の長さは0以上にしてください", lineno)
+                score.ma_beats = ma
             else:
                 score.warnings.append(f"{lineno}行目: 未知のヘッダ '{key}' は無視しました")
             continue

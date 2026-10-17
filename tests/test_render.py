@@ -1,4 +1,5 @@
 import wave
+from fractions import Fraction
 
 import numpy as np
 import pytest
@@ -28,6 +29,23 @@ def test_render_mix_is_stereo_finite_and_normalised():
     assert len(data) / render.SR == pytest.approx(4 * 60 / 90 + 4.5, abs=0.1)
     for ev in sc.events:
         assert ev.end_sec > ev.start_sec
+
+
+def test_ma_mode_inserts_gaps_and_sustains_notes():
+    src = "tempo: 60\nbeats: 2\n{ma}[篳篥] 六 - | 四 . | 一 - |\n[笙] 乙 - | - - | 乙 - |\n"
+    plain = score.parse(src.format(ma=""))
+    ma = score.parse(src.format(ma="ma: 1/2\n"))
+    assert ma.ma_beats == Fraction(1, 2)
+    render.render(plain, reverb=0)
+    render.render(ma, reverb=0)
+    get = lambda sc, part: [(e.symbol, round(e.start_sec, 3), round(e.end_sec, 3)) for e in sc.events if e.part == part]
+    assert get(plain, "hichiriki") == [("六", 0, 2), ("四", 2, 3), ("一", 4, 6)]
+    # 小節の終わりごとに 0.5 拍(=0.5秒)の間。六は間のあいだ延びる。四の後は休みなので延ばさない
+    assert get(ma, "hichiriki") == [("六", 0, 2.5), ("四", 2.5, 3.5), ("一", 5.0, 7.0)]
+    # 小節線をまたぐ笙の乙は、またいだ間のぶんだけ延びる
+    assert get(ma, "sho")[0] == ("乙", 0, 5.0)
+    with pytest.raises(score.ScoreError):
+        score.parse("ma: -1\n[笙]\n乙\n")
 
 
 def test_mute_silences_parts():

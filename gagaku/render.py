@@ -11,6 +11,22 @@ from .score import Score, beat_to_sec_fn
 SR = synth.SR
 
 
+def ma_shift_fn(score: Score, conv):
+    """「間(ま)あり」のときの時刻のずれ(秒)を返す関数。
+
+    各小節の終わり(最後の小節を除く)に ma_beats 拍ぶんの間を挟む。拍 x にある
+    音の頭・終わりは、x 以前にある間の合計だけ後ろへずれる。小節の終わりで鳴って
+    いる音(そこで終わる音、またいでいる音)は終わりもずれるので、間のあいだ延びる。
+    """
+    if not score.ma_beats:
+        return lambda x: 0.0
+    gaps = []
+    for _, b1 in score.bars()[:-1]:
+        beat_len = conv(b1 + 1) - conv(b1)   # その位置のテンポでの1拍
+        gaps.append((b1, float(score.ma_beats) * beat_len))
+    return lambda x: sum(g for b, g in gaps if b <= x)
+
+
 def render(
     score: Score,
     mute: set[str] | None = None,
@@ -22,10 +38,11 @@ def render(
     mute = mute or set()
     volumes = volumes or {}
     conv = beat_to_sec_fn(score)
+    shift = ma_shift_fn(score, conv)
     for ev in score.events:
-        ev.start_sec = conv(ev.beat)
-        ev.end_sec = conv(ev.beat + ev.dur)
-        ev.beat_sec = conv(ev.beat + 1) - ev.start_sec  # その位置での1拍の秒数
+        ev.beat_sec = conv(ev.beat + 1) - conv(ev.beat)  # その位置での1拍の秒数
+        ev.start_sec = conv(ev.beat) + shift(ev.beat)
+        ev.end_sec = conv(ev.beat + ev.dur) + shift(ev.beat + ev.dur)
 
     end = max((ev.end_sec for ev in score.events), default=0.0) + 4.5
     out = np.zeros((int(end * SR) + 1, 2))
