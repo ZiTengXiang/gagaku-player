@@ -37,7 +37,17 @@ TOKEN_RE = re.compile(
 )
 TEMPO_RE = re.compile(r"^(?:tempo|テンポ)[=＝:：](?P<bpm>[0-9.]+)$", re.I)
 HEADER_RE = re.compile(r"^(?P<key>[A-Za-z_一-龥ぁ-んァ-ヶ]+)\s*[:：]\s*(?P<val>.*)$")
-SECTION_RE = re.compile(r"^\[(?P<name>[^\]]+)\]\s*$")
+# [楽器名] の後ろに同じ行で音符を続けてもよい(整形後の書式)
+SECTION_RE = re.compile(r"^\[(?P<name>[^\]]+)\](?P<rest>.*)$")
+
+
+def section_header_end(line: str) -> int | None:
+    """行が [楽器名] で始まっていれば、その ] の直後の列を返す。"""
+    code = line.split("#", 1)[0]
+    s = code.lstrip()
+    if SECTION_RE.match(s):
+        return len(code) - len(s) + s.index("]") + 1
+    return None
 
 
 class ScoreError(Exception):
@@ -73,6 +83,7 @@ class Score:
     part_lengths: dict[str, Fraction] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     bar_lines: dict[str, list[Fraction]] = field(default_factory=dict)  # パートごとの小節線の拍位置
+    tempo_marks: list[tuple[str, Fraction, str]] = field(default_factory=list)  # (パート, 拍, 元の tempo= トークン)
 
     def bars(self, default_len: int = 4) -> list[tuple[Fraction, Fraction]]:
         """小節の (開始拍, 終了拍) のリスト。小節線が最も多いパートの | を基準にする。"""
@@ -119,6 +130,7 @@ def parse(text: str) -> Score:
             continue
 
         m = SECTION_RE.match(stripped)
+        min_col = 0
         if m:
             name = m.group("name").strip()
             key = instruments.resolve_name(name)
@@ -132,7 +144,9 @@ def parse(text: str) -> Score:
             current = key
             cursors.setdefault(key, Fraction(0))
             last_event.setdefault(key, None)
-            continue
+            if not m.group("rest").strip():
+                continue
+            min_col = section_header_end(raw)
 
         if current is None:
             m = HEADER_RE.match(stripped)
@@ -158,6 +172,8 @@ def parse(text: str) -> Score:
 
         inst = instruments.INSTRUMENTS[current]
         for tok, c0, c1 in _tokenize(raw):
+            if c0 < min_col:
+                continue
             if tok in BAR_TOKENS:
                 lines = score.bar_lines.setdefault(current, [])
                 if not lines or lines[-1] != cursors[current]:
@@ -177,6 +193,7 @@ def parse(text: str) -> Score:
             tm = TEMPO_RE.match(tok)
             if tm:
                 score.tempo_changes.append((cursors[current], float(tm.group("bpm"))))
+                score.tempo_marks.append((current, cursors[current], tok))
                 continue
             # 休符に長さ指定  例: .:2
             rm = re.match(r"^(?P<r>[.・〇○休_])[:：](?P<dur>.+)$", tok)

@@ -9,7 +9,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, font as tkfont, messagebox, ttk
 
-from . import instruments, render, score as score_mod
+from . import formatter, instruments, render, score as score_mod
 from .audio import Player
 from .scoreview import ScoreView
 
@@ -70,8 +70,11 @@ class App(tk.Tk):
         self._dirty = False
 
         fams = set(tkfont.families())
-        fam = next((f for f in ("BIZ UDGothic", "Yu Gothic UI", "Yu Gothic", "MS Gothic",
-                                "Noto Sans CJK JP") if f in fams), "TkFixedFont")
+        # 縦をそろえるため等幅(全角=半角2文字分)のフォントを優先する
+        # (Windows では日本語名で登録されていることがある)
+        fam = next((f for f in ("BIZ UDGothic", "BIZ UDゴシック", "MS Gothic", "ＭＳ ゴシック",
+                                "Noto Sans Mono CJK JP", "Osaka－等幅", "Yu Gothic UI", "Yu Gothic")
+                    if f in fams), "TkFixedFont")
         self.edit_font = tkfont.Font(family=fam, size=15)
         self.pal_font = tkfont.Font(family=fam, size=12)
 
@@ -92,7 +95,8 @@ class App(tk.Tk):
         bar = ttk.Frame(self, padding=(6, 4))
         bar.pack(side=tk.TOP, fill=tk.X)
         for label, cmd in (("新規", self.new_file), ("開く", self.ask_open),
-                           ("保存", self.save), ("WAV書き出し", self.export_wav)):
+                           ("保存", self.save), ("WAV書き出し", self.export_wav),
+                           ("縦にそろえる", lambda: self.align_text(auto=False))):
             ttk.Button(bar, text=label, command=cmd).pack(side=tk.LEFT, padx=2)
         ttk.Separator(bar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
         ttk.Button(bar, text="▶ 再生", command=self.play).pack(side=tk.LEFT, padx=2)
@@ -120,14 +124,14 @@ class App(tk.Tk):
         self.left_tabs.add(self.score_view, text="楽譜表示")
         self.left_tabs.bind("<<NotebookTabChanged>>", lambda e: self._refresh_score_view())
         self.text = tk.Text(left, font=self.edit_font, undo=True, wrap=tk.NONE,
-                            padx=8, pady=6, insertwidth=2)
+                            padx=8, pady=6, insertwidth=2, spacing1=2, spacing3=3)
         ys = ttk.Scrollbar(left, orient=tk.VERTICAL, command=self.text.yview)
         xs = ttk.Scrollbar(left, orient=tk.HORIZONTAL, command=self.text.xview)
         self.text.configure(yscrollcommand=ys.set, xscrollcommand=xs.set)
         ys.pack(side=tk.RIGHT, fill=tk.Y)
         xs.pack(side=tk.BOTTOM, fill=tk.X)
         self.text.pack(fill=tk.BOTH, expand=True)
-        self.text.tag_configure("section", foreground="#8a1c1c", font=(self.edit_font.cget("family"), 15, "bold"))
+        self.text.tag_configure("section", foreground="#8a1c1c")  # 太字にすると幅が変わりうるので色だけ
         self.text.tag_configure("header", foreground="#2b5f8a")
         self.text.tag_configure("comment", foreground="#888888")
         self.text.tag_configure("bar", foreground="#b0b0b0")
@@ -192,6 +196,8 @@ class App(tk.Tk):
         self.bind_all("<F5>", lambda e: self.play())
         self.bind_all("<F6>", lambda e: self.play(from_cursor=True))
         self.bind_all("<Escape>", lambda e: self.stop())
+        self.bind_all("<Control-Shift-F>", lambda e: self.align_text(auto=False))
+        self.bind_all("<Control-Shift-f>", lambda e: self.align_text(auto=False))
 
     # ------------------------------------------------------------ 編集補助
     def insert_text(self, s: str):
@@ -205,6 +211,48 @@ class App(tk.Tk):
             self._update_title()
             self.after_idle(self._highlight_syntax)
 
+    def align_text(self, auto: bool = True) -> bool:
+        """譜面テキストを1段5小節・拍頭そろえに整形する。カーソルは同じ音符の位置に戻す。
+
+        auto=True(開く・保存・再生時)は、譜面にエラーがあれば黙って何もしない。
+        """
+        old = self.text.get("1.0", "end-1c")
+        try:
+            new = formatter.format_text(old).rstrip("\n")
+        except score_mod.ScoreError as e:
+            if not auto:
+                messagebox.showerror("整形できません", f"譜面にエラーがあります。\n{e}")
+            return False
+        if new == old:
+            return True
+        # カーソル位置の音符(パートと、そのパートの何番目か)を覚える
+        anchor = None
+        line, col = map(int, self.text.index(tk.INSERT).split("."))
+        try:
+            evs = score_mod.parse(old).events
+            hit = [e for e in evs if (e.line, e.col_end) >= (line, col)]
+            if hit:
+                ev = min(hit, key=lambda e: (e.line, e.col))
+                anchor = (ev.part, [e for e in evs if e.part == ev.part].index(ev))
+        except score_mod.ScoreError:
+            pass
+        yview = self.text.yview()[0]
+        self.text.edit_separator()
+        self.text.delete("1.0", tk.END)
+        self.text.insert("1.0", new)
+        self.text.edit_separator()
+        if anchor is not None:
+            part_evs = [e for e in score_mod.parse(new).events if e.part == anchor[0]]
+            if anchor[1] < len(part_evs):
+                ev = part_evs[anchor[1]]
+                self.text.mark_set(tk.INSERT, f"{ev.line}.{ev.col}")
+        self.text.yview_moveto(yview)
+        self.text.see(tk.INSERT)
+        self._highlight_syntax()
+        if not auto:
+            self._update_status("拍の頭が縦にそろうように整形しました(1段5小節)")
+        return True
+
     def _highlight_syntax(self):
         t = self.text
         for tag in ("section", "header", "comment", "bar"):
@@ -215,12 +263,13 @@ class App(tk.Tk):
             if "#" in line:
                 t.tag_add("comment", f"{i}.{len(code)}", f"{i}.end")
             s = code.strip()
-            if score_mod.SECTION_RE.match(s):
+            head_end = score_mod.section_header_end(line)
+            if head_end is not None:
                 in_section = True
-                t.tag_add("section", f"{i}.0", f"{i}.{len(code)}")
+                t.tag_add("section", f"{i}.0", f"{i}.{head_end}")
             elif not in_section and s:
                 t.tag_add("header", f"{i}.0", f"{i}.{len(code)}")
-            else:
+            if in_section:
                 for m in re.finditer(r"[|｜]", code):
                     t.tag_add("bar", f"{i}.{m.start()}", f"{i}.{m.end()}")
 
@@ -264,6 +313,8 @@ class App(tk.Tk):
     def open_file(self, p: Path):
         self.text.delete("1.0", tk.END)
         self.text.insert("1.0", p.read_text(encoding="utf-8-sig"))
+        self.text.mark_set(tk.INSERT, "1.0")
+        self.align_text(auto=True)
         self.text.edit_modified(False)
         self.text.edit_reset()
         self.path = p
@@ -277,7 +328,8 @@ class App(tk.Tk):
             if not p:
                 return False
             self.path = Path(p)
-        self.path.write_text(self.text.get("1.0", "end-1c"), encoding="utf-8")
+        self.align_text(auto=True)
+        self.path.write_text(self.text.get("1.0", "end-1c") + "\n", encoding="utf-8")
         self._dirty = False
         self._update_title()
         self._update_status(f"保存しました: {self.path}")
@@ -309,6 +361,8 @@ class App(tk.Tk):
 
     # ------------------------------------------------------------ 解析・レンダ
     def _parse(self):
+        if not self.playing:
+            self.align_text(auto=True)
         self.text.tag_remove("error", "1.0", tk.END)
         try:
             sc = score_mod.parse(self.text.get("1.0", "end-1c"))
