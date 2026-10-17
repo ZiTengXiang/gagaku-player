@@ -55,12 +55,14 @@ def _min_level_near(w, t, sr):
     return rms[int((t - 0.12) * sr):int((t + 0.12) * sr)].min() / steady
 
 
-def test_hichiriki_repeated_notes_have_clear_break():
+def test_repeated_notes_have_clear_break():
     from gagaku import instruments as I, synth
     f = I.hz("E5")
-    notes = [synth.PhraseNote(0, 1, f), synth.PhraseNote(1, 2, f)]
-    assert _min_level_near(synth.hichiriki_phrase(notes), 1.0, synth.SR) < 0.01   # ほぼ無音を挟む
-    assert _min_level_near(synth.ryuteki_phrase(notes), 1.0, synth.SR) > 0.1      # 竜笛は従来どおり
+    same = [synth.PhraseNote(0, 1, f), synth.PhraseNote(1, 2, f)]
+    moving = [synth.PhraseNote(0, 1, f), synth.PhraseNote(1, 2, I.hz("F#5"))]
+    for phrase in (synth.hichiriki_phrase, synth.ryuteki_phrase):
+        assert _min_level_near(phrase(same), 1.0, synth.SR) < 0.01     # 同じ譜字の間はほぼ無音を挟む
+        assert _min_level_near(phrase(moving), 1.0, synth.SR) > 0.3    # 違う音へはつないで動く
 
 
 def test_biwa_four_string_sweep_rhythm():

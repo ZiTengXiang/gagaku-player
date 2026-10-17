@@ -141,9 +141,10 @@ def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
         prev, cur = notes[i - 1], notes[i]
         a, b = bounds[i]
         span = b - a
-        if prev.freq == cur.freq and kind == "hichiriki":
-            # 篳篥: 同じ譜字が続くときは、いったん息を止めて吹き直す(切れ目をはっきり)。
-            # 前の音の終わりを短く消して無音を挟み、次の音は下からすくい上げて入る。
+        if prev.freq == cur.freq:
+            # 同じ譜字が続くときは、いったん息を止めて吹き直す(切れ目をはっきり)。
+            # 前の音の終わりを短く消して無音を挟み、次の音は下からすくい上げて入る
+            # (篳篥は塩梅で大きく、竜笛は小さく。竜笛の息の当たる音は ryuteki_phrase で足す)。
             pa, pb = bounds[i - 1]
             prev_span = pb - pa
             fo = max(1, min(_n(0.025), prev_span // 6))   # フェードアウト
@@ -153,17 +154,9 @@ def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
             amp[s0:a - gap] *= np.linspace(1, 0, a - gap - s0) ** 1.5
             amp[a - gap:a] = 0
             amp[a:a + fi] *= np.linspace(0, 1, fi) ** 1.2
-            sb = max(1, min(_n(0.14), span // 2))
-            cents[a:a + sb] += -70 * (1 - smoothstep(np.linspace(0, 1, sb))) ** 1.3
-            continue
-        if prev.freq == cur.freq:
-            # 竜笛: 同じ音の連続は指打ちで切る(音量を一瞬落とす)
-            d = min(_n(0.06), span // 3)
-            dip = np.ones(2 * d)
-            dip[:d] = np.linspace(1, 0.25, d)
-            dip[d:] = np.linspace(0.25, 1, d)
-            s = max(0, a - d)
-            amp[s:s + 2 * d] *= dip[: len(amp[s:s + 2 * d])]
+            scoop, scoop_t = (-70, 0.14) if kind == "hichiriki" else (-30, 0.07)
+            sb = max(1, min(_n(scoop_t), span // 2))
+            cents[a:a + sb] += scoop * (1 - smoothstep(np.linspace(0, 1, sb))) ** 1.3
             continue
         g = min(_n(glide_time), int(span * 0.6))
         if g < 2:
@@ -254,6 +247,13 @@ def ryuteki_phrase(notes: list[PhraseNote]) -> np.ndarray:
     m = min(n, _n(0.05))
     chiff = np.zeros(n)
     chiff[:m] = bandpass_noise(m, 2500, 1200) * np.linspace(1, 0, m) ** 2 * 0.35
+    # 同じ譜字を吹き直すところにも、少し弱いチフを入れる
+    for i in range(1, len(notes)):
+        if notes[i].freq == notes[i - 1].freq:
+            a = bounds[i][0]
+            k = min(_n(0.04), n - a)
+            if k > 1:
+                chiff[a:a + k] += bandpass_noise(k, 2500, 1200) * np.linspace(1, 0, k) ** 2 * 0.25
     env = env_asr(n, 0.05, 0.08)
     out = (tone * (0.85 + 0.15 * high) + breath) * amp * env + chiff
     return out * 0.27
