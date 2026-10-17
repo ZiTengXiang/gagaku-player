@@ -37,5 +37,19 @@ def test_columns_line_up_in_monospace():
     assert all(cols == bar_cols[0] for cols in bar_cols)
 
 
+@pytest.mark.parametrize("beats", [2, 3, 5, 7])
+def test_rebar_by_beats_keeps_music(beats):
+    src = EXAMPLES[0].read_text(encoding="utf-8")
+    rebarred = f"beats: {beats}\n" + src
+    out = formatter.format_text(rebarred)
+    assert signature(score.parse(out))[0] == signature(score.parse(src))[0]
+    sc = score.parse(out)
+    # 譜面の | も指定した拍数ごとに入れ直されている
+    for part, lines in sc.bar_lines.items():
+        inner = [b for b in lines if 0 < b < sc.part_lengths[part]]
+        assert all(b % beats == 0 for b in inner), (part, inner)
+    assert formatter.format_text(out) == out
+
+
 def test_examples_exist():
     assert len(EXAMPLES) >= 3

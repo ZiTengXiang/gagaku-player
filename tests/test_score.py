@@ -52,6 +52,28 @@ def test_errors_report_line(src, line):
     assert ei.value.line == line
 
 
+def test_extend_with_beat_count():
+    sc = score.parse("[篳篥]\n六 -:2 四:1/2 -:1/2 一 -:3/2 |\n")
+    assert notes(sc, "hichiriki") == [
+        ("六", Fraction(0), Fraction(3)),
+        ("四", Fraction(3), Fraction(1)),
+        ("一", Fraction(4), Fraction(5, 2)),
+    ]
+    with pytest.raises(score.ScoreError):
+        score.parse("[篳篥]\n-:2 六\n")
+    with pytest.raises(score.ScoreError):
+        score.parse("[篳篥]\n. -:2\n")
+
+
+def test_beats_header_rebars_ignoring_bar_lines():
+    src = "beats: 3\n[笙]\n乙 - - - | 一 - - - |\n"
+    sc = score.parse(src)
+    assert sc.beats_per_bar == 3
+    assert sc.bars() == [(0, 3), (3, 6), (6, 9)]   # 8拍を3拍ずつ(最後の小節は余り)
+    with pytest.raises(score.ScoreError):
+        score.parse("拍子: 0\n[笙]\n乙\n")
+
+
 def test_length_warning():
     sc = score.parse("[笙]\n乙 - - -\n[篳篥]\n六 -\n")
     assert any("揃っていません" in w for w in sc.warnings)

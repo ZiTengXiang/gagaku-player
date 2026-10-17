@@ -86,6 +86,7 @@ class App(tk.Tk):
             self.text.insert("1.0", TEMPLATE)
             self.text.edit_modified(False)
             self._dirty = False
+            self._sync_beats_box()
         self._update_title()
         self._highlight_syntax()
         self.after(80, lambda: self._body.sashpos(0, int(self.winfo_width() * 0.6)))
@@ -104,6 +105,14 @@ class App(tk.Tk):
         ttk.Button(bar, text="▶ カーソルから", command=lambda: self.play(from_cursor=True)).pack(side=tk.LEFT, padx=2)
         ttk.Button(bar, text="■ 停止", command=self.stop).pack(side=tk.LEFT, padx=2)
         ttk.Separator(bar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+        ttk.Label(bar, text="1小節").pack(side=tk.LEFT)
+        self.beats_var = tk.StringVar(value="4")
+        beats_box = ttk.Spinbox(bar, from_=1, to=32, increment=1, width=3, textvariable=self.beats_var,
+                                command=self._set_beats)
+        beats_box.pack(side=tk.LEFT)
+        beats_box.bind("<Return>", lambda e: self._set_beats())
+        beats_box.bind("<FocusOut>", lambda e: self._set_beats())
+        ttk.Label(bar, text="拍").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Label(bar, text="速さ").pack(side=tk.LEFT)
         self.speed = tk.DoubleVar(value=100)
         ttk.Spinbox(bar, from_=25, to=300, increment=5, width=5, textvariable=self.speed).pack(side=tk.LEFT)
@@ -306,6 +315,7 @@ class App(tk.Tk):
         self.path = None
         self._dirty = False
         self._update_title()
+        self._sync_beats_box()
 
     def ask_open(self):
         if not self._confirm_discard():
@@ -325,6 +335,54 @@ class App(tk.Tk):
         self._dirty = False
         self._update_title()
         self._highlight_syntax()
+        self._sync_beats_box()
+
+    # ------------------------------------------------------------ 1小節の拍数
+    def _sync_beats_box(self):
+        """入力欄を譜面に合わせる(ヘッダの beats:、なければ | から推定した小節の長さ)。"""
+        try:
+            sc = score_mod.parse(self.text.get("1.0", "end-1c"))
+        except score_mod.ScoreError:
+            return
+        if sc.beats_per_bar:
+            n = sc.beats_per_bar
+        else:
+            lengths = [b1 - b0 for b0, b1 in sc.bars()]
+            common = max(set(lengths), key=lengths.count) if lengths else 4
+            n = int(common) if common == int(common) and common > 0 else 4
+        self._beats_applied = str(n)
+        self.beats_var.set(str(n))
+
+    def _set_beats(self):
+        """入力欄の拍数をヘッダ beats: に書き、全楽器をその拍数ごとの小節に区切り直す。"""
+        val = self.beats_var.get().strip().translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+        if not val.isdigit() or not 1 <= int(val) <= 32:
+            self.beats_var.set(getattr(self, "_beats_applied", "4"))
+            return
+        if val == getattr(self, "_beats_applied", None):
+            return
+        lines = self.text.get("1.0", "end-1c").split("\n")
+        first_sec = next((i for i, ln in enumerate(lines) if score_mod.section_header_end(ln) is not None),
+                         len(lines))
+        new_line = f"beats: {val}"
+        key_re = re.compile(r"^\s*(beats|拍子|拍数)\s*[:：]", re.I)
+        idx = next((i for i in range(first_sec) if key_re.match(lines[i])), None)
+        if idx is not None:
+            lines[idx] = new_line
+        else:
+            # ヘッダの最後の「key: 値」行の後ろに入れる
+            last = max((i for i in range(first_sec)
+                        if score_mod.HEADER_RE.match(lines[i].split("#", 1)[0].strip())), default=-1)
+            lines.insert(last + 1, new_line)
+        self.text.edit_separator()
+        self.text.delete("1.0", tk.END)
+        self.text.insert("1.0", "\n".join(lines))
+        self.text.edit_separator()
+        self._beats_applied = val
+        self.align_text(auto=True)
+        self._highlight_syntax()
+        self._refresh_score_view()
+        self._update_status(f"1小節 {val} 拍で区切り直しました")
 
     def save(self) -> bool:
         if self.path is None:
@@ -515,7 +573,7 @@ class App(tk.Tk):
 _HELP = {
     "sho": "合竹名(乞 一 工 凢 乙 下 十 美 行 比 / 乙美 乙言 凢美 凢言)。「単千」のように単を付けると一本だけ。双調では「十」が5音の十になる。",
     "hichiriki": "舌 五 工 凢 六 四 一 丄 丁(低い順, G4〜A5)。ムは現行曲では使わない。音頭に塩梅(下からのすくい上げ)が付く。平調では舌を F#4、丄を F#5 にメリで下げる。調子ごとのメリは tunings.json の hichiriki で上書き可。",
-    "ryuteki": "和(低)の譜字。「責六」または「六'」で責(1オクターブ上)、「干,」で1オクターブ下。干は六の上(E)で鳴る。〒→干 などの異体字も可。",
+    "ryuteki": "和(低)の譜字。延ばしは「-」(1拍)、「-:2」で2拍。「責六」または「六'」で責(1オクターブ上)、「干,」で1オクターブ下。干は六の上(E)で鳴る。〒→干 などの異体字も可。",
     "biwa": "1弦:一工凢フ斗 2弦:乚下十乙コ 3弦:ク七ヒ〻之 4弦:丄八丨ム也(開放,第1〜4柱)。通常は掻撥(低い弦から掻く)、「単」を付けると単音。調弦は tunings.json(暫定値)。",
     "koto": "弦名 一〜十 斗 為 巾 で単音。「閑三」=閑掻、「早三」=早掻(近似)。半拍は「三:1/2」(休みは「.:1/2」)。調弦は tunings.json(暫定値)。",
     "kakko": "正=右の単打 / 片来=左桴のみのロール / 諸来=両桴のロール。来は長さ指定 例: 諸来:3",

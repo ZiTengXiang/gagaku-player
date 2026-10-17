@@ -22,6 +22,7 @@
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from fractions import Fraction
@@ -35,7 +36,9 @@ BAR_TOKENS = {"|", "｜", "||", "‖"}
 TOKEN_RE = re.compile(
     r"^(?P<sym>.+?)(?P<oct>['’,，]*)(?:[:：](?P<dur>[0-9０-９./／]+))?$"
 )
+EXTEND_DUR_RE = re.compile(r"^[-ー―－‐][:：](?P<dur>[0-9０-９./／]+)$")
 TEMPO_RE = re.compile(r"^(?:tempo|テンポ)[=＝:：](?P<bpm>[0-9.]+)$", re.I)
+BEATS_KEYS = ("beats", "拍子", "拍数")   # 1小節の拍数のヘッダ名
 HEADER_RE = re.compile(r"^(?P<key>[A-Za-z_一-龥ぁ-んァ-ヶ]+)\s*[:：]\s*(?P<val>.*)$")
 # [楽器名] の後ろに同じ行で音符を続けてもよい(整形後の書式)
 SECTION_RE = re.compile(r"^\[(?P<name>[^\]]+)\](?P<rest>.*)$")
@@ -84,10 +87,19 @@ class Score:
     warnings: list[str] = field(default_factory=list)
     bar_lines: dict[str, list[Fraction]] = field(default_factory=dict)  # パートごとの小節線の拍位置
     tempo_marks: list[tuple[str, Fraction, str]] = field(default_factory=list)  # (パート, 拍, 元の tempo= トークン)
+    beats_per_bar: int | None = None   # ヘッダ beats: で指定された1小節の拍数
 
     def bars(self, default_len: int = 4) -> list[tuple[Fraction, Fraction]]:
-        """小節の (開始拍, 終了拍) のリスト。小節線が最も多いパートの | を基準にする。"""
+        """小節の (開始拍, 終了拍) のリスト。
+
+        ヘッダで1小節の拍数が決まっていれば、その拍数ごとに区切る(譜面の | は無視)。
+        決まっていなければ、小節線が最も多いパートの | を基準にする。
+        """
         total = max(self.part_lengths.values(), default=Fraction(0))
+        if self.beats_per_bar:
+            n = self.beats_per_bar
+            count = max(1, math.ceil(total / n))
+            return [(Fraction(i * n), Fraction((i + 1) * n)) for i in range(count)]
         lines = max(self.bar_lines.values(), key=len, default=[])
         starts = sorted({Fraction(0), *[b for b in lines if 0 < b < total]})
         if len(starts) <= 1:
@@ -166,6 +178,11 @@ def parse(text: str) -> Score:
                     score.tempo = float(_to_halfwidth(val))
                 except ValueError:
                     raise ScoreError(f"テンポ '{val}' が数値ではありません", lineno)
+            elif key in BEATS_KEYS:
+                v = _to_halfwidth(val)
+                if not v.isdigit() or int(v) < 1:
+                    raise ScoreError(f"1小節の拍数 '{val}' は1以上の整数にしてください", lineno)
+                score.beats_per_bar = int(v)
             else:
                 score.warnings.append(f"{lineno}行目: 未知のヘッダ '{key}' は無視しました")
             continue
@@ -183,12 +200,15 @@ def parse(text: str) -> Score:
                 cursors[current] += 1
                 last_event[current] = None
                 continue
-            if tok in EXTEND_TOKENS:
+            # 延ばし: '-' は1拍、'-:2' '-:1/2' のように拍数も指定できる
+            xm = EXTEND_DUR_RE.match(tok)
+            if tok in EXTEND_TOKENS or xm:
                 ev = last_event[current]
                 if ev is None:
                     raise ScoreError("'-' の前に延ばす音がありません", lineno, c0)
-                ev.dur += 1
-                cursors[current] += 1
+                d = _parse_dur(xm.group("dur"), lineno, c0) if xm else Fraction(1)
+                ev.dur += d
+                cursors[current] += d
                 continue
             tm = TEMPO_RE.match(tok)
             if tm:
