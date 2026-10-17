@@ -186,8 +186,10 @@ def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
 
 # 篳篥の太い管の鼻声: 1.2kHz / 2.7kHz 付近のフォルマント(低次倍音は控えめ)
 _HICHI_GRID = np.linspace(0, SR / 2, 2206)
-_HICHI_FORMANT = (1 + 2.0 * np.exp(-0.5 * ((_HICHI_GRID - 1200) / 380) ** 2)
-                  + 1.2 * np.exp(-0.5 * ((_HICHI_GRID - 2700) / 600) ** 2)) / (1 + (_HICHI_GRID / 5000) ** 2)
+_HICHI_FORMANT = (1 + 1.0 * np.exp(-0.5 * ((_HICHI_GRID - 1200) / 380) ** 2)
+                  + 0.7 * np.exp(-0.5 * ((_HICHI_GRID - 2700) / 600) ** 2)) / (1 + (_HICHI_GRID / 5000) ** 2)
+# 音の高さが聞き取りやすいよう、基音を最も強くする(2倍音もやや支える)
+_HICHI_LOW_BOOST = {1: 1.7, 2: 1.5, 3: 1.2}
 
 
 def hichiriki_phrase(notes: list[PhraseNote]) -> np.ndarray:
@@ -202,11 +204,11 @@ def hichiriki_phrase(notes: list[PhraseNote]) -> np.ndarray:
         if k * fmin > 10000:
             break
         w = np.interp(f * k, _HICHI_GRID, _HICHI_FORMANT)
-        w = w * (0.6 if k == 1 else 1.0)
+        w = w * _HICHI_LOW_BOOST.get(k, 1.0)
         tone += w / k ** 0.65 * np.sin(k * phase)
     tone /= np.max(np.abs(tone)) + 1e-9
     # 強く吹くほど明るくビリつく
-    drive = 1.2 + 2.2 * amp
+    drive = 0.8 + 1.4 * amp   # 歪ませすぎると基音が埋もれるので控えめに
     tone = np.tanh(tone * drive) / np.tanh(drive)
     breath = bandpass_noise(n, 2200, 1100) * 0.05 + lowpass_noise(n, 600) * 0.02
     env = env_asr(n, 0.035, 0.09)
