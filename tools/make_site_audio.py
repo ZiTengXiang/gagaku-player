@@ -22,6 +22,8 @@ pieces = [
     ("wakatake", ROOT / "examples" / "wakatake_sojo.gaku"),
     ("asagasumi", ROOT / "examples" / "asagasumi_ichikotsu.gaku"),
     ("tsukikage", ROOT / "examples" / "tsukikage_oshiki.gaku"),
+    ("shimoyo", ROOT / "examples" / "shimoyo_banshiki.gaku"),
+    ("hanaikada", ROOT / "examples" / "hanaikada_taishiki.gaku"),
 ]
 for name, path in pieces:
     if path is None or not path.exists():
