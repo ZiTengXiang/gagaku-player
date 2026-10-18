@@ -90,8 +90,40 @@ def test_ryuteki_meri_in_hyojo():
     a, b = bounds[4]
     assert f[b - synth._n(0.1)] / notes[4].freq < 2 ** (-60 / 1200)   # 夕は途中で落ちている
     notes2 = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0)) for e in evs]
-    r._apply_meri(evs, notes2, "双調")
+    r._apply_meri(evs, notes2, "壱越調")
     assert all(n.settle == n.dip == n.fall == 0 for n in notes2)
+
+
+def test_ryuteki_meri_in_sojo():
+    from types import SimpleNamespace as E
+    from gagaku import synth
+    r = I.INSTRUMENTS["ryuteki"]
+    assert r._pitch("丅", 0, "双調")[0] == pytest.approx(I.hz("C6"))     # ハカリ+メリで C(神仙)
+    assert r._pitch("責丅", 0, "双調")[0] == pytest.approx(I.hz("C7"))
+    assert r.staff_pitches("丅", 0, "双調")[0] == ["C6"]
+    assert r._pitch("丅", 0, "平調")[0] == pytest.approx(I.hz("C#6"))
+    syms, durs = ["五", "夕", "丄", "丅", "五"], [1.0, 1.0, 1.0, 1.0, 2.0]
+    evs, t = [], 0.0
+    for s, d in zip(syms, durs):
+        evs.append(E(symbol=s, octave=0, start_sec=t, end_sec=t + d, beat_sec=1.0))
+        t += d
+    notes = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0, "双調")) for e in evs]
+    r._apply_meri(evs, notes, "双調")
+    assert notes[0].freq == pytest.approx(I.hz("F#5") * 2 ** (-8 / 1200))   # 工(五)はやや低め
+    assert notes[0].fall == 0 and notes[4].fall == 35        # 長く伸ばすと F 寄りへ
+    assert notes[1].fall == 80                               # 夕 → 丄(G) の手前で落とす
+    assert notes[3].settle == 30
+
+
+def test_hichiriki_meri_in_sojo():
+    from gagaku import synth
+    h = I.INSTRUMENTS["hichiriki"]
+    assert h._pitch("凢", 0, "双調") == pytest.approx(I.hz("C5"))
+    syms = ["四", "舌", "六", "舌", "工", "舌", "凢"]
+    notes = [synth.PhraseNote(i, i + 1.0, h._pitch(s, 0, "双調")) for i, s in enumerate(syms)]
+    h._apply_meri(syms, notes, "双調")
+    assert [n.sink_in for n in notes] == [0, 50, 0, 50, 0, 0, 0]   # 四・六から舌へ下りる所だけ
+    assert notes[6].dip == 55                                     # メリ凢
 
 
 def test_ryuteki_kan_sits_above_roku():

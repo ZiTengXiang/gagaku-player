@@ -213,6 +213,19 @@ RYUTEKI_MERI = {
         "fall": {"夕": 90},
         "fall_min_sec": 0.8,
     },
+    "双調": {
+        # 丅(C#)はハカリと強いメリで半音下の C(神仙)に補正する(音高は tunings.json の ryuteki)。
+        # 上から抑え込むように入る
+        "settle": {"丅": 30, "五": 18},
+        # 五(F#)は双調の合竹に合わせて、顎を引いてジャストよりやや低めに保つ。
+        # 長く伸ばすと F(勝絶)寄りへ滑り込ませる
+        "detune": {"五": -8},
+        "fall": {"五": 35},
+        "fall_min_sec": 1.5,
+        # 夕は主音 G(丄)や D(六)へ移るところで、急に顎を引いて階段状に落とす
+        "fall_before": {"夕": ({"丄", "六"}, 80)},
+        "fall_before_min_sec": 0.4,
+    },
 }
 
 
@@ -233,15 +246,19 @@ class Ryuteki(Instrument):
             return None
         return ("責" if high else "") + base
 
-    def _pitch(self, sym, octave):
+    @staticmethod
+    def _note_name(sym, mode=None):
+        return _TUNINGS.get("ryuteki", {}).get(mode, {}).get(sym, RYUTEKI[sym])
+
+    def _pitch(self, sym, octave, mode=None):
         if sym.startswith("責"):
             sym, octave = sym[1:], octave + 1
-        return hz(RYUTEKI[sym], octave), octave >= 1
+        return hz(self._note_name(sym, mode), octave), octave >= 1
 
     def staff_pitches(self, sym, octave, mode):
         if sym.startswith("責"):
             sym, octave = sym[1:], octave + 1
-        return [shift_note(RYUTEKI[sym], octave)], False
+        return [shift_note(self._note_name(sym, mode), octave)], False
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
         return self.render_single(sym, octave, dur, mode, beat_sec)
@@ -252,7 +269,7 @@ class Ryuteki(Instrument):
             T0 = ph[0].start_sec
             notes = []
             for ev in ph:
-                f, high = self._pitch(ev.symbol, ev.octave)
+                f, high = self._pitch(ev.symbol, ev.octave, mode)
                 notes.append(synth.PhraseNote(ev.start_sec - T0, ev.end_sec - T0, f, high))
             self._apply_meri(ph, notes, mode)
             items.append((T0, synth.ryuteki_phrase(notes)))
@@ -266,15 +283,22 @@ class Ryuteki(Instrument):
         bases = [ev.symbol[1:] if ev.symbol.startswith("責") else ev.symbol for ev in events]
         for i, (ev, nt, base) in enumerate(zip(events, notes, bases)):
             dur = ev.end_sec - ev.start_sec
-            nt.settle = meri["settle"].get(base, 0.0)
+            nt.settle = meri.get("settle", {}).get(base, 0.0)
             if not nt.high:
-                nt.settle = max(nt.settle, meri["settle_low"].get(base, 0.0))
+                nt.settle = max(nt.settle, meri.get("settle_low", {}).get(base, 0.0))
+            if base in meri.get("detune", {}):
+                nt.freq *= 2 ** (meri["detune"][base] / 1200)
             # 経過音: 前後に別の音があり、1拍以内で通り過ぎる音
             if (0 < i < len(events) - 1 and bases[i - 1] != base != bases[i + 1]
                     and dur <= getattr(ev, "beat_sec", 1.0) * 1.0 + 1e-9):
-                nt.dip = meri["passing_dip"].get(base, 0.0)
-            if dur >= meri["fall_min_sec"]:
-                nt.fall = meri["fall"].get(base, 0.0)
+                nt.dip = meri.get("passing_dip", {}).get(base, 0.0)
+            if dur >= meri.get("fall_min_sec", float("inf")):
+                nt.fall = meri.get("fall", {}).get(base, 0.0)
+            # 特定の音へ移る手前で落とす
+            partners, depth = meri.get("fall_before", {}).get(base, ((), 0.0))
+            if (i < len(events) - 1 and bases[i + 1] in partners
+                    and dur >= meri.get("fall_before_min_sec", 0.0)):
+                nt.fall = max(nt.fall, depth)
 
 
 # ------------------------------------------------------------------ 篳篥
@@ -296,6 +320,13 @@ HICHIRIKI_MERI = {
         "dip": {"舌": 70, "丄": 70, "凢": 60, "四": 40},
         # 六は工・五へ渡るとき(工・五から来るときも)、なめらかに沈み込む
         "sink": {"六": ({"工", "五"}, 45)},
+    },
+    "双調": {
+        # 双調では C(神仙)を多用する。凢はメリ凢(くわえを浅く、口元・息圧を緩める)で C5 に
+        # 合わせ、音頭は沈めてから立ち上げる
+        "dip": {"凢": 55},
+        # 四・六から主音 舌(G4)へ下りて着地するとき、口元をなめらかに沈み込ませてつなぐ
+        "land": {"舌": ({"四", "六"}, 50)},
     },
 }
 
@@ -341,6 +372,10 @@ class Hichiriki(Instrument):
                 partners, depth = meri.get("sink", {}).get(a, ((), 0.0))
                 if b in partners:
                     notes[i].sink_in = max(notes[i].sink_in, depth)
+            # 決まった音から下りて着地するとき(向きあり)
+            partners, depth = meri.get("land", {}).get(syms[i], ((), 0.0))
+            if syms[i - 1] in partners and notes[i - 1].freq > notes[i].freq:
+                notes[i].sink_in = max(notes[i].sink_in, depth)
 
 
 # ------------------------------------------------------------------ 楽琵琶
