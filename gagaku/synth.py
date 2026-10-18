@@ -218,9 +218,11 @@ def hichiriki_phrase(notes: list[PhraseNote]) -> np.ndarray:
     # 強く吹くほど明るくビリつく
     drive = 0.8 + 1.4 * amp   # 歪ませすぎると基音が埋もれるので控えめに
     tone = np.tanh(tone * drive) / np.tanh(drive)
-    breath = bandpass_noise(n, 2200, 1100) * 0.05 + lowpass_noise(n, 600) * 0.02
+    breath = bandpass_noise(n, 2200, 1100) * 0.11 + lowpass_noise(n, 600) * 0.045
     env = env_asr(n, 0.035, 0.09)
     out = lowpass((tone + breath) * amp * env, 3800, order=2)
+    # ローパスを通さない息のかすれ(リードに当たる息の音)
+    out += bandpass_noise(n, 5000, 2000) * 0.035 * amp * env
     return out * 0.36
 
 
@@ -241,8 +243,8 @@ def ryuteki_phrase(notes: list[PhraseNote]) -> np.ndarray:
     h4 = 0.03 + 0.08 * high
     tone = np.sin(phase) + h2 * np.sin(2 * phase + 0.3) + h3 * np.sin(3 * phase + 1.1) + h4 * np.sin(4 * phase)
     mean_f = float(np.mean([nt.freq for nt in notes]))
-    breath = (bandpass_noise(n, mean_f, mean_f * 0.35) * 0.16
-              + bandpass_noise(n, 4200, 2200) * (0.05 + 0.05 * high))
+    breath = (bandpass_noise(n, mean_f, mean_f * 0.35) * 0.25
+              + bandpass_noise(n, 4200, 2200) * (0.085 + 0.075 * high))
     # 出だしの「チフ」(息の当たる音)
     m = min(n, _n(0.05))
     chiff = np.zeros(n)
