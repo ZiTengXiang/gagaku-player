@@ -90,7 +90,7 @@ def test_ryuteki_meri_in_hyojo():
     a, b = bounds[4]
     assert f[b - synth._n(0.1)] / notes[4].freq < 2 ** (-60 / 1200)   # 夕は途中で落ちている
     notes2 = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0)) for e in evs]
-    r._apply_meri(evs, notes2, "壱越調")
+    r._apply_meri(evs, notes2, "太食調")   # 竜笛の太食調は正律のまま
     assert all(n.settle == n.dip == n.fall == 0 for n in notes2)
 
 
@@ -134,3 +134,34 @@ def test_ryuteki_kan_sits_above_roku():
 def test_reference_pitch():
     assert I.hz("A4") == pytest.approx(I.A4)
     assert I.hz("A5") == pytest.approx(2 * I.A4)
+
+
+def test_other_modes_meri():
+    from types import SimpleNamespace as E
+    from gagaku import synth
+    h, r = I.INSTRUMENTS["hichiriki"], I.INSTRUMENTS["ryuteki"]
+    # 凢: 盤渉調・太食調は C#(上無)、壱越調・黄鐘調は C(神仙)
+    assert h._note_name("凢", "盤渉調") == h._note_name("凢", "太食調") == "C#5"
+    assert h._note_name("凢", "壱越調") == h._note_name("凢", "黄鐘調") == "C5"
+    assert r._note_name("丅", "壱越調") == r._note_name("丅", "黄鐘調") == "C6"
+    assert r._note_name("丅", "盤渉調") == r._note_name("丅", "太食調") == "C#6"
+    # 篳篥 太食調: 舌はカリ気味に少し高く
+    n = [synth.PhraseNote(0, 1, h._pitch("舌", 0, "太食調"))]
+    h._apply_meri(["舌"], n, "太食調")
+    assert n[0].freq == pytest.approx(I.hz("G4") * 2 ** (20 / 1200))
+    # 篳篥 盤渉調: 舌から一(F#)へ渡ると沈み込む
+    syms = ["舌", "一", "工"]
+    n = [synth.PhraseNote(i, i + 1.0, h._pitch(s, 0, "盤渉調")) for i, s in enumerate(syms)]
+    h._apply_meri(syms, n, "盤渉調")
+    assert [x.sink_in for x in n] == [0, 35, 0]
+    # 竜笛 黄鐘調: 上から夕へ下りる手前で落とす(上がるときは落とさない)
+    seq = ["中", "夕", "五", "夕"]
+    evs = [E(symbol=s, octave=0, start_sec=i, end_sec=i + 1.0, beat_sec=1.0) for i, s in enumerate(seq)]
+    n = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0, "黄鐘調")) for e in evs]
+    r._apply_meri(evs, n, "黄鐘調")
+    assert n[0].fall == 70 and n[2].fall == 0
+    # 竜笛 壱越調: 和の六は上から重厚に着地、責では付かない
+    evs = [E(symbol=s, octave=0, start_sec=i, end_sec=i + 1.0, beat_sec=1.0) for i, s in enumerate(["六", "責六"])]
+    n = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0, "壱越調")) for e in evs]
+    r._apply_meri(evs, n, "壱越調")
+    assert n[0].settle == 20 and n[1].settle == 0

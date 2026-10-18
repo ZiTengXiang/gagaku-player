@@ -164,8 +164,8 @@ When you open, save, play or export, or press the "縦にそろえる" (align) b
 | Instrument | Characters |
 |---|---|
 | Shō (笙) | Chords (合竹): 乞 一 工 凢 乙 下 十 美 行 比; special chords 乙美 乙言 凢美 凢言. Prefix 単 (as in `単千`) for a single pipe. In 双調, 十 is the five-note 十. |
-| Hichiriki (篳篥) | 舌 五 工 凢 六 四 一 丄 丁 (low to high, G4–A5, standard pitches from Japanese Wikipedia "篳篥"). ム is not used in current pieces. Each note starts with an 塩梅 pitch bend. In 平調, 舌 is lowered from G4 to F#4 and 丄 from G5 to F#5 (メリ), and 凢 is fitted to the mode's C#5 instead of C5 (メリ凢). 舌, 丄, 凢 and 四 also dip at the start of the note before rising, and 六 sinks where it meets 工 or 五. In 双調, 凢 is played as メリ凢 on C5 (dipping at the onset), and the line sinks smoothly when it descends from 四 or 六 to the tonic 舌. Other modes have no メリ set; override per character in `tunings.json` under `hichiriki`. |
-| Ryūteki (竜笛) | 五 丄 夕 中 丅 六 干 (〒) in the low register (和). `責六` or `六'` for the high register (責). 干 sounds above 六 (E6); the low 干 (E5) is `干,`. In 平調, 五 (F#) and 丅 (C#) start slightly sharp and are pulled down to pitch (メリ・ハカリ), the low-register 干 lands on E from above, 六 as a passing note dips (メル), and a held 夕 falls in steps, or slides down at the end of a phrase. In 双調, 丅 is lowered to C6 (C7 in 責) with ハカリ and メリ, 五 is held slightly flat (sliding toward F when long), and 夕 falls in steps just before moving to 丄 (G) or 六 (D). Pitch overrides per mode are in `tunings.json` under `ryuteki`. |
+| Hichiriki (篳篥) | 舌 五 工 凢 六 四 一 丄 丁 (low to high, G4–A5, standard pitches from Japanese Wikipedia "篳篥"). ム is not used in current pieces. Each note starts with an 塩梅 pitch bend. Each mode applies its own メリ: 舌 and 丄 are lowered to F# in 平調 and bend slightly upward (カリ) in 太食調; 凢 is C#5 in 平調, 盤渉調 and 太食調 and C5 with メリ凢 in 双調, 壱越調 and 黄鐘調; some notes dip at the onset or sink where they meet particular notes. See the per-mode charts (linked below) for details. Pitch overrides per mode are in `tunings.json` under `hichiriki`. |
+| Ryūteki (竜笛) | 五 丄 夕 中 丅 六 干 (〒) in the low register (和). `責六` or `六'` for the high register (責). 干 sounds above 六 (E6); the low 干 (E5) is `干,`. Each mode applies its own メリ and ハカリ: 丅 is lowered to C6 (C7 in 責) in 双調, 壱越調 and 黄鐘調 and stays C#6 in 平調, 盤渉調 and 太食調; notes that tend to be sharp are pulled down to pitch, and 夕 falls in steps or slides down in some modes. See the per-mode charts for details. Pitch overrides per mode are in `tunings.json` under `ryuteki`. |
 | Gakubiwa (琵琶) | String 1: 一 工 凢 フ 斗 / string 2: 乚 下 十 乙 コ / string 3: ク 七 ヒ 〻 之 / string 4: 丄 八 丨 ム 也 (open, frets 1–4). Normally a sweep (掻撥); `単ク` for a single note. Join with `+`, as in `一+ク`, to strike different strings together (割撥; the same string twice is an error). The sweep "lands" on the beat: the last string (the target note) sounds exactly on the written beat, and the earlier strings are played ahead of it, dividing the preceding beat equally by the number of strings (with 4 strings: 0.75, 0.5 and 0.25 beats early, then on the beat). Change the length with `BIWA_PICKUP_BEATS` in `instruments.py`. |
 | Gakusō (筝) | 一–十 斗 為 巾 (single notes); `閑三` = 閑掻, `早三` = 早掻. |
 | Kakko (鞨鼓) | 正 (single right stroke), 片来 (roll with the left stick only), 諸来 (roll with both sticks). Give the roll a length, as in `諸来:3`. Rolls start slowly and speed up; the speed follows the tempo (adjust with `KAKKO_ROLL_SPEED` in `instruments.py`). |
@@ -184,7 +184,7 @@ When you open, save, play or export, or press the "縦にそろえる" (align) b
   - Biwa and koto: strings with partials that decay at different rates, plus the sound of the plectrum or picks and the body resonance.
   - Kakko, taiko and shōko: inharmonic membrane and metal modes.
 - Write preview WAVs per instrument to `previews/` with `python tools/make_previews.py`.
-- A chart of the Hyōjō (平調) scale with each instrument's characters and the app's Hyōjō techniques (meri, hakari) is on the website: [Hyōjō scale and notation chart](https://zitengxiang.github.io/gagaku-player/en/hyojo/). It is generated from the app's pitch data with `python tools/build_hyojo_table.py`.
+- Charts of each mode's scale with each instrument's characters and the app's メリ and ハカリ techniques are on the website: [Ichikotsu-chō](https://zitengxiang.github.io/gagaku-player/en/ichikotsu/), [Hyōjō](https://zitengxiang.github.io/gagaku-player/en/hyojo/), [Sōjō](https://zitengxiang.github.io/gagaku-player/en/sojo/), [Ōshiki-chō](https://zitengxiang.github.io/gagaku-player/en/oshiki/), [Banshiki-chō](https://zitengxiang.github.io/gagaku-player/en/banshiki/), [Taishiki-chō](https://zitengxiang.github.io/gagaku-player/en/taishiki/). They are generated from the app's pitch data with `python tools/build_mode_tables.py`.
 
 ### Layout
 
@@ -208,7 +208,7 @@ tools/make_previews.py  writes preview WAVs per instrument
 tools/make_icon.py      rebuilds the icon
 tools/make_site_audio.py writes the website's preview MP3s
 tools/build_plugin_index.py builds the online plugin catalog (docs/plugins/)
-tools/build_hyojo_table.py builds the Hyōjō scale chart (docs/hyojo/, docs/en/hyojo/)
+tools/build_mode_tables.py builds the per-mode scale charts (docs/<mode>/, docs/en/<mode>/)
 tests/                  pytest tests
 docs/                   website (GitHub Pages)
 .github/workflows/      CI (test and build) and PyPI publishing
@@ -387,8 +387,8 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
 | 楽器 | 譜字 |
 |---|---|
 | 笙 | 合竹: 乞 一 工 凢 乙 下 十 美 行 比、特殊合竹 乙美 乙言 凢美 凢言。`単千` のように「単」を付けると一本だけ。双調では「十」が5音の十になる。 |
-| 篳篥 | 舌 五 工 凢 六 四 一 丄 丁(低い順, G4〜A5、Wikipedia「篳篥」の正律)。ムは現行曲では使わない。音頭に塩梅を付ける。平調では、舌を正律の G4 から F#4(下無)に、丄を G5 から F#5 に下げて吹き(メリ)、凢は C5 ではなく平調の音階の C#5(上無)に合わせる(メリ凢)。さらに舌・丄・凢・四は音頭で口元を緩めていったん沈めてから立ち上げ、六は工・五へ渡るとき(工・五から来るときも)なめらかに沈み込む。双調では、凢をメリ凢で C5(神仙)に合わせて音頭で沈め、四・六から主音の舌へ下りて着地するときは口元をなめらかに沈み込ませてつなぐ。ほかの調子のメリは未設定で、`tunings.json` の `hichiriki` で譜字ごとに上書きできる。 |
-| 竜笛 | 五 丄 夕 中 丅 六 干(〒)(和)。`責六` または `六'` で責。干は六の上(E6)で鳴る。低い干(E5)は `干,`。平調では、五(F#)・丅(C#)は高めに当たるのをメリ・ハカリで抑えて正しい高さに合わせ、和の干(主音 E)は上向きから下向きへ角度を変えてなめらかに着地する。経過音の六はメルで意図的に落とし、伸ばした夕は顎を引いて階段状に、フレーズの終わりでは滑り台状に落とす。双調では、丅をハカリと強いメリで C6(神仙、責では C7)に下げ、五は顎を引いてやや低めに保ち(長く伸ばすと勝絶 F 寄りへ滑り込む)、丄(G)・六(D)へ移る手前の夕は階段状に落とす。調子ごとの音高の上書きは `tunings.json` の `ryuteki`。 |
+| 篳篥 | 舌 五 工 凢 六 四 一 丄 丁(低い順, G4〜A5、Wikipedia「篳篥」の正律)。ムは現行曲では使わない。音頭に塩梅を付ける。調子ごとにメリを付ける。舌・丄は平調で F# に下げ、太食調ではわずかに上向かせる(カリ気味)。凢は平調・盤渉調・太食調では C#5(上無)、双調・壱越調・黄鐘調ではメリ凢で C5(神仙)。ほかにも音頭で沈める、特定の音との境目で沈み込むなどの奏法がある。詳しくは下の調子ごとの対応表を参照。音高の上書きは `tunings.json` の `hichiriki`。 |
+| 竜笛 | 五 丄 夕 中 丅 六 干(〒)(和)。`責六` または `六'` で責。干は六の上(E6)で鳴る。低い干(E5)は `干,`。調子ごとにメリ・ハカリを付ける。丅は双調・壱越調・黄鐘調ではハカリとメリで C6(神仙、責では C7)に下げ、平調・盤渉調・太食調では C#6(上無)のまま。高めに当たりやすい音は抑え込み、調子によって夕を階段状・滑り台状に落とす。詳しくは調子ごとの対応表を参照。音高の上書きは `tunings.json` の `ryuteki`。 |
 | 琵琶 | 1弦 一 工 凢 フ 斗 / 2弦 乚 下 十 乙 コ / 3弦 ク 七 ヒ 〻 之 / 4弦 丄 八 丨 ム 也(開放, 第1〜4柱)。通常は掻撥、`単ク` で単音。`一+ク` のように `+` でつなぐと、別々の弦を同時に鳴らす(割撥。同じ弦どうしはエラー)。掻撥は「着地型」で、最後の弦(目的の音)を譜面の位置の拍頭ちょうどに鳴らし、それより前の弦は直前の1拍を弦の数で等分して先に弾く(4本なら 0.75・0.5・0.25 拍前と拍頭。`instruments.py` の `BIWA_PICKUP_BEATS` で長さを変更可)。 |
 | 筝 | 一〜十 斗 為 巾(単音)、`閑三` = 閑掻、`早三` = 早掻。 |
 | 鞨鼓 | 正(右の単打)、片来(左桴のみのロール)、諸来(両桴のロール)。ロールは `諸来:3` のように長さを指定。来は打ち始めが間遠く次第に速まり、速さはテンポに連動する(`instruments.py` の `KAKKO_ROLL_SPEED` で調整可)。 |
@@ -407,7 +407,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
   - 琵琶・筝: 倍音ごとに減衰の違う弦の音に、撥・爪の打撃音と胴の共鳴を加える。
   - 鞨鼓・太鼓・鉦鼓: 膜・金属の非整数倍モードによる合成。
 - 楽器ごとの試聴用WAVは `python tools/make_previews.py` で `previews/` に書き出せる。
-- 平調の音階と各楽器の譜字の対応、平調のメリ・ハカリの一覧は、紹介サイトの「[平調の音階と譜字の対応表](https://zitengxiang.github.io/gagaku-player/hyojo/)」にまとめている。アプリの音高データから `python tools/build_hyojo_table.py` で作っている。
+- 調子ごとの音階と各楽器の譜字の対応、メリ・ハカリの一覧は、紹介サイトの対応表にまとめている: [壱越調](https://zitengxiang.github.io/gagaku-player/ichikotsu/)・[平調](https://zitengxiang.github.io/gagaku-player/hyojo/)・[双調](https://zitengxiang.github.io/gagaku-player/sojo/)・[黄鐘調](https://zitengxiang.github.io/gagaku-player/oshiki/)・[盤渉調](https://zitengxiang.github.io/gagaku-player/banshiki/)・[太食調](https://zitengxiang.github.io/gagaku-player/taishiki/)。アプリの音高データから `python tools/build_mode_tables.py` で作っている。
 
 ### 構成
 
@@ -431,7 +431,7 @@ tools/make_previews.py  楽器ごとの試聴用WAVを書き出す
 tools/make_icon.py      アイコンを作り直す
 tools/make_site_audio.py 紹介サイトの試聴用MP3を書き出す
 tools/build_plugin_index.py オンラインのプラグイン一覧(docs/plugins/)を作る
-tools/build_hyojo_table.py 平調の音階と譜字の対応表(docs/hyojo/, docs/en/hyojo/)を作る
+tools/build_mode_tables.py 調子ごとの音階と譜字の対応表(docs/<調子>/, docs/en/<調子>/)を作る
 tests/                  pytest のテスト
 docs/                   紹介サイト(GitHub Pages)
 .github/workflows/      CI(テスト・ビルド)と PyPI への公開

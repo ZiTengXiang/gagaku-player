@@ -226,6 +226,27 @@ RYUTEKI_MERI = {
         "fall_before": {"夕": ({"丄", "六"}, 80)},
         "fall_before_min_sec": 0.4,
     },
+    "盤渉調": {
+        # 主音 B(中)は上ずりやすいので、顎を引いて安定させる。五(F#)も高めを抑え込む。
+        # 丅(C#)は音階の音なので、ハカリをせず開いた指で正律のまま吹く
+        "settle": {"中": 15, "五": 20},
+    },
+    "壱越調": {
+        # 丅はハカリ + 強いメリで C6(神仙)へ(音高は tunings.json)。五は抑え込み、長いと F 寄りへ
+        "settle": {"丅": 30, "五": 18},
+        "fall": {"五": 35},
+        "fall_min_sec": 1.5,
+        # 和の六(主音 D)・干(E)は低音域で不安定になりやすいので、メリ気味の角度で重厚に着地する
+        "settle_low": {"六": 20, "干": 20},
+    },
+    "黄鐘調": {
+        # 丅はハカリ + メリで C6(神仙)へ
+        "settle": {"丅": 30},
+        # 主音 A(夕)へ上から下りて着地する手前で、急に顎を引いて落とす
+        "fall_before": {s: ({"夕"}, 70, "down") for s in ("中", "丅", "六", "干")},
+        "fall_before_min_sec": 0.4,
+    },
+    # 太食調: 丅(C#)はハカリをせず正律、五(F#)も顎を引きすぎず明るく保つ(既定のまま)
 }
 
 
@@ -295,9 +316,10 @@ class Ryuteki(Instrument):
             if dur >= meri.get("fall_min_sec", float("inf")):
                 nt.fall = meri.get("fall", {}).get(base, 0.0)
             # 特定の音へ移る手前で落とす
-            partners, depth = meri.get("fall_before", {}).get(base, ((), 0.0))
+            partners, depth, *opt = meri.get("fall_before", {}).get(base, ((), 0.0))
             if (i < len(events) - 1 and bases[i + 1] in partners
-                    and dur >= meri.get("fall_before_min_sec", 0.0)):
+                    and dur >= meri.get("fall_before_min_sec", 0.0)
+                    and ("down" not in opt or nt.freq > notes[i + 1].freq)):
                 nt.fall = max(nt.fall, depth)
 
 
@@ -327,6 +349,27 @@ HICHIRIKI_MERI = {
         "dip": {"凢": 55},
         # 四・六から主音 舌(G4)へ下りて着地するとき、口元をなめらかに沈み込ませてつなぐ
         "land": {"舌": ({"四", "六"}, 50)},
+    },
+    "盤渉調": {
+        # 凢は音階の C#(上無)に合わせ(tunings.json)、経過音として軽くメリをかける
+        "dip": {"凢": 30},
+        # 舌・丄(G、変音)は F#(一)や A(五・丁)へ渡るとき、口元で沈み込ませる
+        "sink": {"舌": ({"五", "一", "丁"}, 35), "丄": ({"五", "一", "丁"}, 35)},
+    },
+    "壱越調": {
+        # 凢はメリ凢で C5(神仙)に合わせる。舌・丄は正律の G のまま、ごくわずかに沈める程度
+        "dip": {"凢": 55, "舌": 15, "丄": 15},
+    },
+    "太食調": {
+        # 呂の調子なので舌・丄はメリをかけず、わずかに上向かせる(カリ気味、G〜G# のニュアンス)。
+        # 凢は C#5(上無)のまま(tunings.json)、工は高めに保つ
+        "detune": {"舌": 20, "丄": 20, "工": 8},
+    },
+    "黄鐘調": {
+        # 凢はメリ凢で C5(神仙)に合わせる
+        "dip": {"凢": 55},
+        # 舌・丄は F#(一)や A(五・丁)へ渡るとき、口元で沈み込ませる
+        "sink": {"舌": ({"五", "一", "丁"}, 35), "丄": ({"五", "一", "丁"}, 35)},
     },
 }
 
@@ -367,6 +410,8 @@ class Hichiriki(Instrument):
         meri = HICHIRIKI_MERI.get(mode, {})
         for i, s in enumerate(syms):
             notes[i].dip = meri.get("dip", {}).get(s, 0.0)
+            if s in meri.get("detune", {}):
+                notes[i].freq *= 2 ** (meri["detune"][s] / 1200)
         for i in range(1, len(syms)):
             for a, b in ((syms[i - 1], syms[i]), (syms[i], syms[i - 1])):
                 partners, depth = meri.get("sink", {}).get(a, ((), 0.0))

@@ -38,7 +38,7 @@
   "applicationCategory": "MultimediaApplication",
   "applicationSubCategory": "Gagaku sequencing / DTM",
   "operatingSystem": "Windows, macOS, Linux",
-  "softwareVersion": "0.4.0",
+  "softwareVersion": "0.5.0",
   "inLanguage": "en",
   "license": "https://opensource.org/licenses/MIT",
   "url": "https://zitengxiang.github.io/gagaku-player/en/",
@@ -151,6 +151,9 @@
   a.more { display: inline-block; margin-top: 8px; font-weight: bold; text-decoration: none; border-bottom: 1px solid currentColor; }
   a.more::after { content: " →"; }
   .card a.more { font-size: .92rem; }
+  ul.modes { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  ul.modes li a { display: block; padding: 1px 10px; border: 1px solid var(--gold); border-radius: 8px; background: var(--paper); text-decoration: none; font-family: "BIZ UDMincho", "Yu Mincho", serif; }
+  ul.modes li a:hover { border-color: var(--accent); }
   .lang { margin: -40px 0 24px; font-size: .9rem; color: var(--muted); }
   @media (max-width: 600px) { .lang { margin-top: -24px; word-break: break-all; } }
   footer { padding: 30px 0 50px; color: var(--muted); font-size: .9rem; }
@@ -204,18 +207,21 @@
         <p>A bright, lively melody that speeds up section by section and settles at the end.</p>
         <audio controls preload="none" src="../audio/wakatake.mp3"></audio>
         <small>About 0:53. An original piece written for this app (not a classical piece).</small>
+        <p><a class="more" href="sojo/">See each instrument's characters and pitches in Sōjō</a></p>
       </div>
       <div class="listen">
         <h3>Asagasumi <span class="mode" lang="ja">朝霞 · 壱越調</span></h3>
         <p>Begins slowly, gradually speeds up, and relaxes in the final bar.</p>
         <audio controls preload="none" src="../audio/asagasumi.mp3"></audio>
         <small>About 1:24. An original piece written for this app (not a classical piece).</small>
+        <p><a class="more" href="ichikotsu/">See each instrument's characters and pitches in Ichikotsu-chō</a></p>
       </div>
       <div class="listen">
         <h3>Tsukikage <span class="mode" lang="ja">月影 · 黄鐘調</span></h3>
         <p>The prelude is played calmly by shō and ryūteki alone; everyone joins from bar 5.</p>
         <audio controls preload="none" src="../audio/tsukikage.mp3"></audio>
         <small>About 1:10. An original piece written for this app (not a classical piece).</small>
+        <p><a class="more" href="oshiki/">See each instrument's characters and pitches in Ōshiki-chō</a></p>
       </div>
     </div>
   </section>
@@ -234,7 +240,7 @@
     <div class="features">
       <div class="card"><h3>Type the notation as is</h3><p>Write shō chords (乞 一 工 凢 …), hichiriki and ryūteki characters, biwa frets, koto strings, and percussion strokes such as 正, 来, 百 and 図 directly as text. You can also click them in from the notation palette.</p></div>
       <div class="card"><h3>Played the gagaku way</h3><p>The shō keeps shared pipes sounding through chord changes (手移り), and the hichiriki joins notes with 塩梅. Repeated characters are re-articulated with a clear break. Biwa sweeps, koto 閑掻/早掻 patterns and kakko rolls (following the tempo) are reproduced too.</p></div>
-      <div class="card"><h3>Six modes</h3><p>Supports Ichikotsu-chō, Hyōjō, Sōjō, Ōshiki-chō, Banshiki-chō and Taishiki-chō. In Hyōjō, the hichiriki's 舌 and 丄 are lowered (メリ), and 凢, 四 and 六 get メリ techniques. The ryūteki's メリ and ハカリ in Hyōjō are reproduced too, and both instruments get their メリ and ハカリ in Sōjō as well.<br><a class="more" href="hyojo/">Hyōjō scale and notation chart</a></p></div>
+      <div class="card"><h3>Six modes</h3><p>Supports Ichikotsu-chō, Hyōjō, Sōjō, Ōshiki-chō, Banshiki-chō and Taishiki-chō. Each mode has its own hichiriki メリ and ryūteki メリ and ハカリ (for example, 舌 and 丄 are lowered to F# in Hyōjō, and 凢 is lowered to C in Sōjō, Ichikotsu-chō and Ōshiki-chō).<br>Scale and notation chart for each mode:</p><ul class="modes"><li><a href="ichikotsu/">Ichikotsu-chō</a></li><li><a href="hyojo/">Hyōjō</a></li><li><a href="sojo/">Sōjō</a></li><li><a href="oshiki/">Ōshiki-chō</a></li><li><a href="banshiki/">Banshiki-chō</a></li><li><a href="taishiki/">Taishiki-chō</a></li></ul></div>
       <div class="card"><h3>A score that lines up</h3><p>The score text is formatted automatically with five bars per system, all instruments stacked and the beats aligned vertically.</p></div>
       <div class="card"><h3>Score view and staff notation</h3><p>Shows a full score with aligned beats and a Western staff score with the gagaku characters under the notes. The sounding notes are highlighted during playback.</p></div>
       <div class="card"><h3>Tempo changes and WAV export</h3><p>Write gagaku's gradual accelerations with <code>tempo=</code>. Export the performance as a WAV file.</p></div>
@@ -247,7 +253,9 @@
   <section id="updates">
     <h2>Recent updates</h2>
     <ul class="updates">
-      <li><strong>メリ and ハカリ in Sōjō</strong> — the hichiriki plays 凢 as メリ凢 on C5 and sinks smoothly when descending from 四 or 六 to the tonic 舌. The ryūteki lowers 丅 to C6 with ハカリ and メリ, holds 五 slightly flat (sliding toward F when long), and drops 夕 in steps just before 丄 or 六 (in the next pip release).</li>
+      <li><strong>Charts for all six modes</strong> — scale and notation charts with each instrument's characters, pitches and メリ/ハカリ techniques for Ichikotsu-chō, Hyōjō, Sōjō, Ōshiki-chō, Banshiki-chō and Taishiki-chō (open them from "Six modes" under Features).</li>
+      <li><strong>メリ and ハカリ in Banshiki-chō, Ichikotsu-chō, Taishiki-chō and Ōshiki-chō</strong> — 凢 becomes C (Shinsen) in Ichikotsu-chō and Ōshiki-chō (メリ凢 on the hichiriki, ハカリ and メリ on the ryūteki) and C# (Kamimu) in Banshiki-chō and Taishiki-chō. In Taishiki-chō the hichiriki's 舌 and 丄 get no メリ and bend slightly upward; in Banshiki-chō and Ōshiki-chō they sink toward F# and A. The ryūteki pulls sharp notes down to pitch, and in Ōshiki-chō drops just before descending to the tonic A (夕) (in the pip release from 0.5.0).</li>
+      <li><strong>メリ and ハカリ in Sōjō</strong> — the hichiriki plays 凢 as メリ凢 on C5 and sinks smoothly when descending from 四 or 六 to the tonic 舌. The ryūteki lowers 丅 to C6 with ハカリ and メリ, holds 五 slightly flat (sliding toward F when long), and drops 夕 in steps just before 丄 or 六 (in the pip release from 0.5.0).</li>
       <li><strong>Hyōjō scale chart</strong> — a new <a href="hyojo/">chart page</a> lists, for each pitch of the Hyōjō scale, the characters and pitches of the shō, hichiriki, ryūteki, biwa and koto, plus the Hyōjō メリ and ハカリ techniques.</li>
       <li><strong>Ryūteki メリ and ハカリ in Hyōjō</strong> — 五 and 丅 start slightly sharp and are pulled down to pitch, and the low 干 lands smoothly. 六 as a passing note dips (メル), and a held 夕 falls in steps or slides down (in the pip release from 0.4.0).</li>
       <li><strong>Hichiriki メリ in Hyōjō</strong> — 凢 is fitted to the mode's C#5 (メリ凢). 舌, 丄, 凢 and 四 dip at the start of the note before rising, and 六 sinks smoothly where it meets 工 or 五 (in the pip release from 0.4.0).</li>
@@ -262,7 +270,7 @@
       <li><strong>Kakko</strong> — rolls (片来, 諸来) are slower and their speed follows the tempo.</li>
       <li><strong>Bug fixes</strong> — the score pane could be hidden at startup; opening a file while the score view or staff tab was shown left the previous score displayed.</li>
     </ul>
-    <p class="small-note">These updates are included in the pip release 0.4.0 (published October 18, 2026; the landing biwa sweep is new in 0.2.1, plugins in 0.3.0, and the Hyōjō メリ/ハカリ and sound changes in 0.4.0). If you already have it installed, update with <code>pip install -U gagaku-player</code>.</p>
+    <p class="small-note">These updates are included in the pip release 0.5.0 (published October 18, 2026; the landing biwa sweep is new in 0.2.1, plugins in 0.3.0, the Hyōjō メリ/ハカリ and sound changes in 0.4.0, and メリ/ハカリ for the other modes in 0.5.0). If you already have it installed, update with <code>pip install -U gagaku-player</code>.</p>
   </section>
 
   <section>
@@ -330,7 +338,8 @@ python main.py examples/wakatake_sojo.gaku</pre>
     <h2>Pitch and tuning</h2>
     <div class="note">
       <p>The reference pitch is A4 = 430 Hz. The pitches of the shō, hichiriki and ryūteki follow published tables. No source was found for the gakubiwa and gakusō tunings in each mode, so they are <strong>provisional</strong> values built from each mode's tonic and scale (editable in <code>gagaku/tunings.json</code>). Techniques such as 閑掻, 早掻, 掻撥 and 来 are simplified approximations. If you know the correct tunings or techniques, please let us know in <a href="https://github.com/ZiTengXiang/gagaku-player/issues">GitHub Issues</a>.</p>
-      <p>A chart shows which pitch each instrument's characters sound in Hyōjō, and how the Hyōjō メリ and ハカリ techniques bend them.<br><a class="more" href="hyojo/">Hyōjō scale and notation chart</a></p>
+      <p>For each mode, a chart shows which pitch each instrument's characters sound and how the メリ and ハカリ techniques bend them. Choose a mode:</p>
+      <ul class="modes"><li><a href="ichikotsu/">Ichikotsu-chō</a></li><li><a href="hyojo/">Hyōjō</a></li><li><a href="sojo/">Sōjō</a></li><li><a href="oshiki/">Ōshiki-chō</a></li><li><a href="banshiki/">Banshiki-chō</a></li><li><a href="taishiki/">Taishiki-chō</a></li></ul>
     </div>
   </section>
 
@@ -344,7 +353,7 @@ python main.py examples/wakatake_sojo.gaku</pre>
       <dt>Is there a smartphone app?</dt>
       <dd>Not at the moment. It is a desktop app for Windows, macOS and Linux, and runs on Python 3.10 or later.</dd>
       <dt>Which instruments and modes are supported?</dt>
-      <dd>The eight instruments of the kangen ensemble (shō, hichiriki, ryūteki, biwa, koto, kakko, shōko, taiko) and the six modes (Ichikotsu-chō, Hyōjō, Sōjō, Ōshiki-chō, Banshiki-chō, Taishiki-chō). For the characters and pitches in Hyōjō, see the <a href="hyojo/">Hyōjō scale and notation chart</a>.</dd>
+      <dd>The eight instruments of the kangen ensemble (shō, hichiriki, ryūteki, biwa, koto, kakko, shōko, taiko) and the six modes (Ichikotsu-chō, Hyōjō, Sōjō, Ōshiki-chō, Banshiki-chō, Taishiki-chō). For the characters and pitches in each mode, see the charts for <a href="ichikotsu/">Ichikotsu-chō</a>, <a href="hyojo/">Hyōjō</a>, <a href="sojo/">Sōjō</a>, <a href="oshiki/">Ōshiki-chō</a>, <a href="banshiki/">Banshiki-chō</a>, <a href="taishiki/">Taishiki-chō</a>.</dd>
       <dt>Can I use it if I cannot read gagaku notation?</dt>
       <dd>You can click each instrument's characters in from the palette and check every note in the staff tab. Sample pieces are included, so start by listening with <code>gagaku-player --demo</code>.</dd>
       <dt>Are the sounds recordings?</dt>

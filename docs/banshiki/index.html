@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YRQ8M99RN2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YRQ8M99RN2');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>盤渉調の音階と譜字の対応表|雅楽譜プレイヤー</title>
+<meta name="description" content="雅楽の盤渉調(B を主音とする律旋)の音階と、笙・篳篥・竜笛・琵琶・筝の譜字・音高の対応表。篳篥・竜笛の盤渉調でのメリ・ハカリも一覧にしています。">
+<link rel="canonical" href="https://zitengxiang.github.io/gagaku-player/banshiki/">
+<link rel="alternate" hreflang="ja" href="https://zitengxiang.github.io/gagaku-player/banshiki/">
+<link rel="alternate" hreflang="en" href="https://zitengxiang.github.io/gagaku-player/en/banshiki/">
+<link rel="alternate" hreflang="x-default" href="https://zitengxiang.github.io/gagaku-player/en/banshiki/">
+<meta property="og:title" content="盤渉調の音階と譜字の対応表">
+<meta property="og:description" content="雅楽の盤渉調(B を主音とする律旋)の音階と、笙・篳篥・竜笛・琵琶・筝の譜字・音高の対応表。篳篥・竜笛の盤渉調でのメリ・ハカリも一覧にしています。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://zitengxiang.github.io/gagaku-player/banshiki/">
+<meta property="og:image" content="https://zitengxiang.github.io/gagaku-player/images/score.png">
+<link rel="icon" href="../images/icon.png">
+<style>
+  :root {
+    --bg: #f8f3e8;
+    --paper: #fffdf7;
+    --ink: #2a2420;
+    --muted: #6f6458;
+    --line: #e2d8c5;
+    --accent: #9e201c;
+    --gold: #b8912f;
+    --code: #f1e9d8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1815;
+      --paper: #24201c;
+      --ink: #ece4d6;
+      --muted: #b0a493;
+      --line: #3d362e;
+      --accent: #e0645a;
+      --gold: #d4b25a;
+      --code: #2e2924;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    line-height: 1.8;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header.hero {
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(ellipse at 80% 0%, rgba(184, 145, 47, .12), transparent 60%),
+      radial-gradient(ellipse at 0% 100%, rgba(158, 32, 28, .08), transparent 55%);
+  }
+  .hero-inner { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+  .hero img.icon { width: 112px; height: 112px; border-radius: 22px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+  .hero h1 {
+    margin: 0;
+    font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: .08em;
+  }
+  .hero p.tag { margin: 6px 0 0; font-size: 1.15rem; color: var(--muted); }
+  .hero p.sub { margin: 2px 0 0; font-size: .95rem; color: var(--muted); }
+  dl.faq dt { font-weight: bold; margin-top: 14px; }
+  dl.faq dt::before { content: "Q. "; color: var(--accent); }
+  dl.faq dd { margin: 4px 0 0 1.6em; }
+  .buttons { margin-top: 26px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 10px 22px; border-radius: 999px; text-decoration: none;
+    font-weight: bold; border: 2px solid var(--accent);
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { color: var(--accent); background: transparent; }
+  section { padding: 44px 0; border-bottom: 1px solid var(--line); }
+  h2 {
+    font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-size: 1.6rem; margin: 0 0 18px; letter-spacing: .06em;
+  }
+  h2::before { content: ""; display: inline-block; width: 6px; height: 1.1em; background: var(--accent); margin-right: 12px; vertical-align: -0.15em; border-radius: 2px; }
+  .listen { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .listen audio { width: 100%; margin-top: 8px; }
+  .listen small { color: var(--muted); }
+  .demos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 700px) { .demos { grid-template-columns: 1fr; } }
+  .listen h3 { margin: 0; font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 1.25rem; }
+  .listen h3 .mode { font-size: .85rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 0 6px; margin-left: 6px; vertical-align: .15em; font-family: inherit; }
+  .listen p { margin: 4px 0 0; font-size: .95rem; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
+  .card p { margin: 0; color: var(--ink); font-size: .95rem; }
+  .instruments { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; }
+  .instruments li {
+    border: 1px solid var(--gold); color: var(--ink); border-radius: 8px; padding: 2px 12px;
+    font-family: "BIZ UDMincho", "Yu Mincho", serif; background: var(--paper);
+  }
+  figure { margin: 0 0 28px; }
+  figure img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+  figcaption { color: var(--muted); font-size: .95rem; margin-top: 6px; }
+  pre {
+    background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+    overflow-x: auto; font-family: "BIZ UDGothic", "MS Gothic", "Osaka-Mono", monospace; font-size: .92rem; line-height: 1.6;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: normal; white-space: nowrap; }
+  .note { background: var(--paper); border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 0 10px 10px 0; }
+  ol li { margin-bottom: 6px; }
+  ul.updates { margin: 0; padding-left: 1.2em; }
+  ul.updates li { margin-bottom: 8px; }
+  ul.updates strong { color: var(--accent); }
+  .small-note { color: var(--muted); font-size: .9rem; }
+  a.more { display: inline-block; margin-top: 8px; font-weight: bold; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a.more::after { content: " →"; }
+  .card a.more { font-size: .92rem; }
+  ul.modes { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  ul.modes li a { display: block; padding: 1px 10px; border: 1px solid var(--gold); border-radius: 8px; background: var(--paper); text-decoration: none; font-family: "BIZ UDMincho", "Yu Mincho", serif; }
+  ul.modes li a:hover { border-color: var(--accent); }
+  .lang { margin: -40px 0 24px; font-size: .9rem; color: var(--muted); }
+  @media (max-width: 600px) { .lang { margin-top: -24px; word-break: break-all; } }
+  footer { padding: 30px 0 50px; color: var(--muted); font-size: .9rem; }
+  @media (max-width: 600px) {
+    header.hero { padding: 40px 0 28px; }
+    .hero img.icon { width: 80px; height: 80px; }
+    th { white-space: normal; }
+  }
+
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+  table.scale, table.meri-t { min-width: 760px; }
+  table.scale th, table.scale td { white-space: nowrap; }
+  table.scale thead th { color: var(--ink); font-weight: bold; background: var(--code); }
+  table.scale th.pc { font-weight: bold; color: var(--ink); font-size: 1.05rem; }
+  table.scale tr.core th.pc { color: var(--accent); }
+  table.scale tr.out { color: var(--muted); }
+  table.scale td.empty { color: var(--line); }
+  .ch { display: inline-flex; align-items: baseline; gap: 3px; margin: 0 10px 2px 0; }
+  .ch b { font-family: "BIZ UDMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 1.15rem; font-weight: normal; }
+  .ch small { color: var(--muted); }
+  .ch .pos { color: var(--muted); font-size: .8rem; }
+  b.meri, .ch b.meri { color: var(--accent); }
+  table.meri-t thead th { color: var(--ink); font-weight: bold; background: var(--code); }
+  table.meri-t th, table.meri-t td:nth-child(-n+3) { white-space: nowrap; }
+  table.meri-t td.ch1 { font-family: "BIZ UDMincho", "Yu Mincho", serif; font-size: 1.1rem; white-space: nowrap; }
+  header.hero.small { padding: 40px 0 28px; }
+  .hero.small h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); }
+  ul.modes { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  ul.modes li { border: 1px solid var(--gold); border-radius: 8px; background: var(--paper); font-family: "BIZ UDMincho", "Yu Mincho", serif; }
+  ul.modes li a { display: block; padding: 2px 12px; text-decoration: none; }
+  ul.modes li.here { padding: 2px 12px; background: var(--accent); border-color: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+
+<header class="hero small">
+  <div class="wrap">
+    <p class="lang">English version: <a href="https://zitengxiang.github.io/gagaku-player/en/banshiki/" hreflang="en">https://zitengxiang.github.io/gagaku-player/en/banshiki/</a></p>
+    <h1>盤渉調の音階と譜字の対応表</h1>
+    <p class="tag">盤渉調は、B(十二律の盤渉)を主音(宮)とする律旋の調子です。下の表は、雅楽譜プレイヤーが盤渉調で鳴らす各楽器の譜字と音高を、音階の音ごとにまとめたものです。</p>
+    <p class="sub"><a href="../">← 雅楽譜プレイヤーのトップへ</a></p>
+    <ul class="modes"><li><a href="../ichikotsu/">壱越調</a></li><li><a href="../hyojo/">平調</a></li><li><a href="../sojo/">双調</a></li><li><a href="../oshiki/">黄鐘調</a></li><li class="here">盤渉調</li><li><a href="../taishiki/">太食調</a></li></ul>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>盤渉調の音階</h2>
+    <p>盤渉調は律旋で、五声は 宮 B・商 C#・角 E・徴 F#・羽 G#。これに嬰商 D・嬰羽 Aを加えた七声で旋律が動きます。主音にあたる譜字は、メリを付けずに正律で安定して吹きます。</p>
+  </section>
+
+  <section id="scale">
+    <h2>音階と各楽器の譜字</h2>
+    <div class="scroll"><table class="scale"><thead><tr><th>音名</th><th>十二律</th><th>この調子での役割</th><th>笙</th><th>篳篥</th><th>竜笛</th><th>琵琶</th><th>筝</th></tr></thead><tbody><tr class="core"><th class="pc">B</th><td>盤渉</td><td>宮(五声)・主音</td><td><span class="ch"><b>一</b><small>B4</small></span><span class="ch"><b>七</b><small>B5</small></span></td><td><span class="ch"><b>工</b><small>B4</small></span></td><td><span class="ch"><b class="meri">中</b><small>B5</small></span><span class="ch"><b class="meri">責中</b><small>B6</small></span></td><td><span class="ch"><b>一</b><small>B2</small><span class="pos">1弦開放</span></span><span class="ch"><b>乙</b><small>B3</small><span class="pos">2弦第3柱</span></span><span class="ch"><b>ク</b><small>B3</small><span class="pos">3弦開放</span></span><span class="ch"><b>也</b><small>B4</small><span class="pos">4弦第4柱</span></span></td><td><span class="ch"><b>一</b><small>B3</small></span><span class="ch"><b>三</b><small>B4</small></span><span class="ch"><b>八</b><small>B5</small></span><span class="ch"><b>巾</b><small>B6</small></span></td></tr><tr class="core"><th class="pc">C#</th><td>上無</td><td>商(五声)</td><td><span class="ch"><b>工</b><small>C#5</small></span><span class="ch"><b>言</b><small>C#6</small></span></td><td><span class="ch"><b class="meri">凢</b><small>C#5</small></span></td><td><span class="ch"><b>丅</b><small>C#6</small></span><span class="ch"><b>責丅</b><small>C#7</small></span></td><td><span class="ch"><b>工</b><small>C#3</small><span class="pos">1弦第1柱</span></span><span class="ch"><b>コ</b><small>C#4</small><span class="pos">2弦第4柱</span></span><span class="ch"><b>七</b><small>C#4</small><span class="pos">3弦第1柱</span></span></td><td><span class="ch"><b>四</b><small>C#5</small></span><span class="ch"><b>九</b><small>C#6</small></span></td></tr><tr class="aux"><th class="pc">D</th><td>壱越</td><td>嬰商</td><td><span class="ch"><b>凢</b><small>D5</small></span><span class="ch"><b>上</b><small>D6</small></span></td><td><span class="ch"><b>六</b><small>D5</small></span></td><td><span class="ch"><b>六</b><small>D6</small></span><span class="ch"><b>責六</b><small>D7</small></span></td><td><span class="ch"><b>凢</b><small>D3</small><span class="pos">1弦第2柱</span></span><span class="ch"><b>ヒ</b><small>D4</small><span class="pos">3弦第2柱</span></span></td><td class="empty">—</td></tr><tr class="core"><th class="pc">E</th><td>平調</td><td>角(五声)</td><td><span class="ch"><b>乙</b><small>E5</small></span><span class="ch"><b>八</b><small>E6</small></span></td><td><span class="ch"><b>四</b><small>E5</small></span></td><td><span class="ch"><b>干,</b><small>E5</small></span><span class="ch"><b>干</b><small>E6</small></span><span class="ch"><b>責干</b><small>E7</small></span></td><td><span class="ch"><b>フ</b><small>E3</small><span class="pos">1弦第3柱</span></span><span class="ch"><b>〻</b><small>E4</small><span class="pos">3弦第3柱</span></span><span class="ch"><b>丄</b><small>E4</small><span class="pos">4弦開放</span></span></td><td><span class="ch"><b>五</b><small>E5</small></span><span class="ch"><b>十</b><small>E6</small></span></td></tr><tr class="core"><th class="pc">F#</th><td>下無</td><td>徴(五声)</td><td><span class="ch"><b>下</b><small>F#5</small></span><span class="ch"><b>千</b><small>F#6</small></span></td><td><span class="ch"><b>一</b><small>F#5</small></span></td><td><span class="ch"><b class="meri">五</b><small>F#5</small></span><span class="ch"><b class="meri">責五</b><small>F#6</small></span></td><td><span class="ch"><b>斗</b><small>F#3</small><span class="pos">1弦第4柱</span></span><span class="ch"><b>乚</b><small>F#3</small><span class="pos">2弦開放</span></span><span class="ch"><b>之</b><small>F#4</small><span class="pos">3弦第4柱</span></span><span class="ch"><b>八</b><small>F#4</small><span class="pos">4弦第1柱</span></span></td><td><span class="ch"><b>二</b><small>F#4</small></span><span class="ch"><b>六</b><small>F#5</small></span><span class="ch"><b>斗</b><small>F#6</small></span></td></tr><tr class="core"><th class="pc">G#</th><td>鳧鐘</td><td>羽(五声)</td><td><span class="ch"><b>美</b><small>G#5</small></span></td><td class="empty">—</td><td class="empty">—</td><td><span class="ch"><b>下</b><small>G#3</small><span class="pos">2弦第1柱</span></span><span class="ch"><b>丨</b><small>G#4</small><span class="pos">4弦第2柱</span></span></td><td><span class="ch"><b>七</b><small>G#5</small></span><span class="ch"><b>為</b><small>G#6</small></span></td></tr><tr class="aux"><th class="pc">A</th><td>黄鐘</td><td>嬰羽</td><td><span class="ch"><b>乞</b><small>A4</small></span><span class="ch"><b>行</b><small>A5</small></span></td><td><span class="ch"><b>五</b><small>A4</small></span><span class="ch"><b>丁</b><small>A5</small></span></td><td><span class="ch"><b>夕</b><small>A5</small></span><span class="ch"><b>責夕</b><small>A6</small></span></td><td><span class="ch"><b>十</b><small>A3</small><span class="pos">2弦第2柱</span></span><span class="ch"><b>ム</b><small>A4</small><span class="pos">4弦第3柱</span></span></td><td class="empty">—</td></tr><tr class="out"><th class="pc">C</th><td>神仙</td><td>音階外</td><td><span class="ch"><b>比</b><small>C6</small></span></td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr><tr class="out"><th class="pc">G</th><td>双調</td><td>音階外</td><td><span class="ch"><b>十</b><small>G5</small></span></td><td><span class="ch"><b class="meri">舌</b><small>G4</small></span><span class="ch"><b class="meri">丄</b><small>G5</small></span></td><td><span class="ch"><b>丄</b><small>G5</small></span><span class="ch"><b>責丄</b><small>G6</small></span></td><td class="empty">—</td><td class="empty">—</td></tr></tbody></table></div>
+    <p class="small-note">音名は国際式(A4 = 430 Hz を基準)。<b class='meri'>赤字</b>の譜字は、盤渉調でメリ・ハカリなどの例外的な奏法が付くもの(下の表を参照)。琵琶は弦と柱、筝は弦の名前です。琵琶・筝の調弦は、出典が見つからなかったため主音と音階から組んだ暫定値です。笙は合竹ではなく、竹(簧)1本ずつの音高です。</p>
+  </section>
+
+  <section id="meri">
+    <h2>盤渉調の例外的な奏法(メリ・ハカリ)</h2>
+    <div class="scroll"><table class="meri-t"><thead><tr><th>楽器</th><th>譜字</th><th>音高(正律 → この調子)</th><th>この調子での奏法(このアプリでの再現)</th></tr></thead><tbody><tr><td>篳篥</td><td class='ch1'>舌</td><td>G4(変えない)</td><td>一・丁・五と行き来する境目で、約35セントなめらかに沈み込む。</td></tr><tr><td>篳篥</td><td class='ch1'>凢</td><td>C5 → C#5</td><td>音階の上無(C#)に合わせる。 音頭で約30セント沈めてから立ち上げる。</td></tr><tr><td>篳篥</td><td class='ch1'>丄</td><td>G5(変えない)</td><td>一・丁・五と行き来する境目で、約35セントなめらかに沈み込む。</td></tr><tr><td>竜笛</td><td class='ch1'>五</td><td>F#5(変えない)</td><td>高めに当たりやすいのを、顎を引いて約20セント抑え込み、正しい高さに合わせる。</td></tr><tr><td>竜笛</td><td class='ch1'>中</td><td>B5(変えない)</td><td>高めに当たりやすいのを、顎を引いて約15セント抑え込み、正しい高さに合わせる。</td></tr></tbody></table></div>
+    <p class="small-note">セントは半音の 1/100。値はアプリの既定値で、<code>gagaku/instruments.py</code> の <code>HICHIRIKI_MERI</code>・<code>RYUTEKI_MERI</code> と <code>gagaku/tunings.json</code> で変えられます。</p>
+  </section>
+
+  <section>
+    <h2>ほかの調子</h2>
+    <ul class="modes"><li><a href="../ichikotsu/">壱越調</a></li><li><a href="../hyojo/">平調</a></li><li><a href="../sojo/">双調</a></li><li><a href="../oshiki/">黄鐘調</a></li><li class="here">盤渉調</li><li><a href="../taishiki/">太食調</a></li></ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>この表は雅楽譜プレイヤー 0.5.0 の音高データから自動で作っています(<code>tools/build_mode_tables.py</code>)。</p>
+    <a href="../">← 雅楽譜プレイヤーのトップへ</a> — <a href="https://github.com/ZiTengXiang/gagaku-player">github.com/ZiTengXiang/gagaku-player</a>
+  </div>
+</footer>
+
+</body>
+</html>
