@@ -1,5 +1,7 @@
 # Gagaku Score Player (雅楽譜プレイヤー)
 
+日本語の説明は下に記載しています
+
 [![CI](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/gagaku-player)](https://pypi.org/project/gagaku-player/)
 
