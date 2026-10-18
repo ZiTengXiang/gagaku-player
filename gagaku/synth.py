@@ -238,13 +238,21 @@ def ryuteki_phrase(notes: list[PhraseNote]) -> np.ndarray:
     high[bounds[-1][1]:] = high[bounds[-1][1] - 1] if bounds[-1][1] > 0 else 0
     # 責の切り替わりをなめらかに
     high = moving_average(high, _n(0.03))
-    h2 = 0.28 + 0.30 * high
-    h3 = 0.10 + 0.22 * high
-    h4 = 0.03 + 0.08 * high
-    tone = np.sin(phase) + h2 * np.sin(2 * phase + 0.3) + h3 * np.sin(3 * phase + 1.1) + h4 * np.sin(4 * phase)
+    # 息は一定ではないので、音の高さと大きさをわずかに不規則に揺らす(澄みすぎた電子音にしない)
+    phase = phase + 2 * np.pi * np.cumsum(f * (2 ** (lowpass_noise(n, 6) * 4 / 1200) - 1)) / SR
+    shimmer = 1 + lowpass_noise(n, 9) * 0.10
+    h2 = 0.38 + 0.30 * high
+    h3 = 0.20 + 0.25 * high
+    h4 = 0.08 + 0.10 * high
+    h5 = 0.04 + 0.06 * high
+    tone = (np.sin(phase) + h2 * np.sin(2 * phase + 0.3) + h3 * np.sin(3 * phase + 1.1)
+            + h4 * np.sin(4 * phase) + h5 * np.sin(5 * phase + 0.7))
     mean_f = float(np.mean([nt.freq for nt in notes]))
-    breath = (bandpass_noise(n, mean_f, mean_f * 0.35) * 0.25
-              + bandpass_noise(n, 4200, 2200) * (0.085 + 0.075 * high))
+    # 歌口に当たる息の乱れは管の振動に合わせて脈打つので、息音を音の周期で揺らして音と溶け合わせる
+    pulse = 0.55 + 0.45 * (0.5 + 0.5 * np.sin(phase - 0.6)) ** 2
+    breath = (bandpass_noise(n, mean_f, mean_f * 0.45) * 0.48
+              + bandpass_noise(n, 2 * mean_f, mean_f * 0.6) * 0.20
+              + bandpass_noise(n, 4500, 2600) * (0.20 + 0.12 * high)) * pulse
     # 出だしの「チフ」(息の当たる音)
     m = min(n, _n(0.05))
     chiff = np.zeros(n)
@@ -257,7 +265,7 @@ def ryuteki_phrase(notes: list[PhraseNote]) -> np.ndarray:
             if k > 1:
                 chiff[a:a + k] += bandpass_noise(k, 2500, 1200) * np.linspace(1, 0, k) ** 2 * 0.25
     env = env_asr(n, 0.05, 0.08)
-    out = (tone * (0.85 + 0.15 * high) + breath) * amp * env + chiff
+    out = (tone * (0.85 + 0.15 * high) * shimmer + breath) * amp * env + chiff
     return out * 0.27
 
 
