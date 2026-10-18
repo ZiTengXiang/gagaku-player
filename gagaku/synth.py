@@ -118,6 +118,8 @@ class PhraseNote:
     high: bool = False  # 竜笛の責など
     dip: float = 0.0      # 音頭でいったん沈めてから立ち上げる深さ(セント)。篳篥のメリなど
     sink_in: float = 0.0  # 前の音との境目で、なめらかに沈み込ませる深さ(セント)
+    settle: float = 0.0   # 音頭は高めに当たり、顎を引いて(メリ)正しい高さへ抑え込む幅(セント)
+    fall: float = 0.0     # 吹き終わり・伸ばす途中で顎を引いて落とす深さ(セント)。竜笛の夕など
 
 
 def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
@@ -190,6 +192,24 @@ def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
             L = min(_n(0.12), (pb - pa) // 3, span // 3)
             if L > 1:
                 cents[a - L:a + L] -= nt.sink_in * np.sin(np.pi * np.linspace(0, 1, 2 * L))
+        if nt.settle and span > 2:
+            L = max(2, min(_n(0.16), int(span * 0.5)))
+            cents[a:a + L] += nt.settle * (1 - smoothstep(np.linspace(0, 1, L)))
+        if nt.fall and span > 2:
+            if i == len(notes) - 1:
+                # 吹き終わり: 滑り台状に落とす
+                L = max(2, min(_n(0.30), int(span * 0.4)))
+                cents[b - L:b] -= nt.fall * smoothstep(np.linspace(0, 1, L)) ** 1.5
+            else:
+                # 伸ばす途中: 階段状に2段で落とし、次の音へはその低さから移る
+                s1, s2 = a + int(span * 0.55), a + int(span * 0.78)
+                st = max(2, min(_n(0.04), (s2 - s1) // 2))
+                for s in (s1, s2):
+                    cents[s:s + st] -= nt.fall / 2 * smoothstep(np.linspace(0, 1, st))
+                    cents[s + st:b] -= nt.fall / 2
+                na, nb = bounds[i + 1]
+                L = max(2, min(_n(0.10), (nb - na) // 2))
+                cents[na:na + L] -= nt.fall * (1 - smoothstep(np.linspace(0, 1, L)))
 
     # 長い音にのみ、遅れて小さな揺れ
     for (a, b) in bounds:

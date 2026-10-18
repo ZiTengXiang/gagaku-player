@@ -199,6 +199,23 @@ RYUTEKI = {  # 和(低音域)。責は ' を付けて1オクターブ上
 }
 
 
+# 調子ごとのメリ・ハカリ(竜笛)。値はセント。
+RYUTEKI_MERI = {
+    "平調": {
+        # 五(F#, 平調の商)・丅(C#, 羽)は高めに当たりやすいので、顎を引く(メリ)・指を少し被せる
+        # (ハカリ)ことで抑え込み、正しい高さに合わせる。和の干(主音 E)は上向き(カリ)から
+        # 下向き(メリ)へ角度を変えて、なめらかに着地する
+        "settle": {"五": 22, "丅": 20},
+        "settle_low": {"干": 32},
+        # 六は経過音・装飾的な動きの中で、メル(半分塞ぐ・顎を大きく引く)で意図的に落とす
+        "passing_dip": {"六": 60},
+        # 夕は吹き終わり・伸ばす途中で、急に顎を引いて滑り台状・階段状に落とす
+        "fall": {"夕": 90},
+        "fall_min_sec": 0.8,
+    },
+}
+
+
 class Ryuteki(Instrument):
     key = "ryuteki"
     display = "竜笛"
@@ -237,8 +254,27 @@ class Ryuteki(Instrument):
             for ev in ph:
                 f, high = self._pitch(ev.symbol, ev.octave)
                 notes.append(synth.PhraseNote(ev.start_sec - T0, ev.end_sec - T0, f, high))
+            self._apply_meri(ph, notes, mode)
             items.append((T0, synth.ryuteki_phrase(notes)))
         return items
+
+    @staticmethod
+    def _apply_meri(events, notes, mode):
+        meri = RYUTEKI_MERI.get(mode)
+        if not meri:
+            return
+        bases = [ev.symbol[1:] if ev.symbol.startswith("責") else ev.symbol for ev in events]
+        for i, (ev, nt, base) in enumerate(zip(events, notes, bases)):
+            dur = ev.end_sec - ev.start_sec
+            nt.settle = meri["settle"].get(base, 0.0)
+            if not nt.high:
+                nt.settle = max(nt.settle, meri["settle_low"].get(base, 0.0))
+            # 経過音: 前後に別の音があり、1拍以内で通り過ぎる音
+            if (0 < i < len(events) - 1 and bases[i - 1] != base != bases[i + 1]
+                    and dur <= getattr(ev, "beat_sec", 1.0) * 1.0 + 1e-9):
+                nt.dip = meri["passing_dip"].get(base, 0.0)
+            if dur >= meri["fall_min_sec"]:
+                nt.fall = meri["fall"].get(base, 0.0)
 
 
 # ------------------------------------------------------------------ 篳篥

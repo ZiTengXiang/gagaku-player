@@ -67,6 +67,33 @@ def test_hichiriki_meri_ornaments_in_hyojo():
     assert all(n.dip == 0 and n.sink_in == 0 for n in notes2)
 
 
+def test_ryuteki_meri_in_hyojo():
+    from types import SimpleNamespace as E
+    from gagaku import synth
+    r = I.INSTRUMENTS["ryuteki"]
+    syms = ["干", "六", "五", "丅", "夕", "責干"]
+    durs = [1.0, 0.5, 1.0, 1.0, 1.0, 1.0]
+    evs, t = [], 0.0
+    for s, d in zip(syms, durs):
+        evs.append(E(symbol=s, octave=0, start_sec=t, end_sec=t + d, beat_sec=1.0))
+        t += d
+    notes = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0)) for e in evs]
+    r._apply_meri(evs, notes, "平調")
+    assert [n.settle for n in notes] == [32, 0, 22, 20, 0, 0]   # 責の干は低音域ではない
+    assert notes[1].dip == 60                                    # 経過音の六はメル
+    assert notes[4].fall == 90                                   # 夕は伸ばすと落とす
+    _, f, _, bounds = synth._phrase_curves(notes, start_bend=0, start_time=0.01, glide_time=0.01,
+                                           kind="ryuteki")
+    a, b = bounds[2]
+    assert f[a + 5] / notes[2].freq > 2 ** (15 / 1200)          # 五は高めに当たり
+    assert f[a + synth._n(0.4)] / notes[2].freq == pytest.approx(1, abs=0.005)  # 抑え込む
+    a, b = bounds[4]
+    assert f[b - synth._n(0.1)] / notes[4].freq < 2 ** (-60 / 1200)   # 夕は途中で落ちている
+    notes2 = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0)) for e in evs]
+    r._apply_meri(evs, notes2, "双調")
+    assert all(n.settle == n.dip == n.fall == 0 for n in notes2)
+
+
 def test_ryuteki_kan_sits_above_roku():
     r = I.INSTRUMENTS["ryuteki"]
     assert r._pitch("干", 0)[0] > r._pitch("六", 0)[0]
