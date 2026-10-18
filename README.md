@@ -79,6 +79,19 @@ Mode: Hyōjō
 
 The notation characters written in the score text stay in Japanese, because they are the score data.
 
+#### Japanese pop-up plugin (譜字ポップアップ(日本語))
+
+Keeps the Japanese interface and button labels, and adds the same kind of pop-up in Japanese: reading, position (biwa string and fret, koto string, shō chord or single pipe), pitches in the current mode, and the stroke for percussion.
+
+```
+読み: じょう
+表記: 丄(琵琶・4弦・開放)
+構成音: E2, B2, E3, A3(アルペジオ。A3 を拍頭に着地)
+調子: 平調
+```
+
+If both plugins are enabled, the one enabled last provides the pop-ups.
+
 #### Writing a plugin
 
 A plugin is a folder with two files:
@@ -187,7 +200,7 @@ gagaku/scoreview.py     score view (five bars per system)
 gagaku/formatter.py     score text formatter (aligns beats)
 gagaku/staffview.py     staff view (with notation characters)
 gagaku/plugins.py       plugin system (load, enable, catalog, install)
-gagaku/bundled_plugins/ plugins bundled with the app (English UI)
+gagaku/bundled_plugins/ plugins bundled with the app (English UI, Japanese pop-ups)
 gagaku/assets/          icon
 examples/               sample scores (bundled in the pip package)
 tools/make_previews.py  writes preview WAVs per instrument
@@ -286,6 +299,19 @@ Mode: Hyōjō
 ```
 
 譜面テキストに書く譜字そのものは、譜面のデータなので日本語のまま。
+
+#### 譜字ポップアップ(日本語)プラグイン
+
+画面の文言やボタンの表示は日本語のまま、English UI と同じ種類のポップアップを日本語で出す。内容は、読み・表記(琵琶の弦と柱、筝の弦、笙の合竹か一本か)・今の調子での構成音、打楽器なら打ち方。
+
+```
+読み: じょう
+表記: 丄(琵琶・4弦・開放)
+構成音: E2, B2, E3, A3(アルペジオ。A3 を拍頭に着地)
+調子: 平調
+```
+
+両方のプラグインを有効にした場合は、後から有効にしたほうのポップアップが出る。
 
 #### プラグインの作り方
 
@@ -395,7 +421,7 @@ gagaku/scoreview.py     楽譜表示(1段5小節の総譜)
 gagaku/formatter.py     譜面テキストの整形(拍頭を縦にそろえる)
 gagaku/staffview.py     五線譜表示(字譜つき)
 gagaku/plugins.py       プラグインの仕組み(読み込み・有効化・一覧・インストール)
-gagaku/bundled_plugins/ 同梱プラグイン(English UI)
+gagaku/bundled_plugins/ 同梱プラグイン(English UI、譜字ポップアップ(日本語))
 gagaku/assets/          アイコン
 examples/               サンプル譜(pip 版ではパッケージ内に同梱)
 tools/make_previews.py  楽器ごとの試聴用WAVを書き出す

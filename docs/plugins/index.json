@@ -25,6 +25,31 @@
         "plugin.json": "e316676cfc52482530a3e7fdf06173e2ecaa67fd639dc3537a2ed24fbc2d8e20",
         "plugin.py": "45336eafe90bffb6b4f3ff70bfb8e1d88c342162ce9723360ae2cb714cf550de"
       }
+    },
+    {
+      "id": "ja-tooltip",
+      "name": "譜字ポップアップ(日本語)",
+      "version": "1.0.0",
+      "description": {
+        "ja": "日本語の画面のまま、譜字ボタンにカーソルを置くと、読み・表記(琵琶の弦と柱、筝の弦など)・今の調子での構成音を小さなポップアップで日本語表示する。",
+        "en": "Keeps the Japanese interface and adds small Japanese pop-ups to the notation buttons, showing each character's reading, position (biwa string and fret, koto string) and pitches in the current mode."
+      },
+      "tags": [
+        "japanese",
+        "tooltip",
+        "popup",
+        "日本語",
+        "ポップアップ",
+        "読み",
+        "構成音",
+        "説明"
+      ],
+      "api": 1,
+      "path": "ja-tooltip/",
+      "files": {
+        "plugin.json": "949162318b74e18fab393091fedbeafc5176bdee43d4d39dece48f21e57ac6f2",
+        "plugin.py": "a6c2b4f256824f82e1d054c27263a9e22a6ed345c7646ececbc567dc552f64de"
+      }
     }
   ]
 }

@@ -21,7 +21,7 @@ def fake_fetch(root: Path, tamper: str | None = None):
 
 def test_bundled_install_enable_and_disable(isolated_home):
     m = plugins.PluginManager()
-    assert [p.id for p in m.bundled_catalog()] == ["english"]
+    assert {"english", "ja-tooltip"} <= {p.id for p in m.bundled_catalog()}
     m.install_bundled("english")
     assert m.installed_info("english").version
     m.set_enabled("english", True)
@@ -55,11 +55,38 @@ def test_tooltip_has_reading_japanese_and_pitches(isolated_home):
     assert "Stroke:" in m.palette_tooltip("kakko", "諸来", "平調")
 
 
-@pytest.mark.parametrize("query, found", [("英語", True), ("english tooltip", True), ("ポップアップ", True),
-                                          ("synthesizer", False)])
-def test_search(query, found):
+def test_japanese_tooltip_plugin_keeps_ui_and_adds_popups(isolated_home):
+    m = plugins.PluginManager()
+    m.install_bundled("ja-tooltip")
+    m.set_enabled("ja-tooltip", True)
+    assert m.texts() == {} and m.palette_label("biwa", "丄") is None   # 画面とボタンは日本語のまま
+    tip = m.palette_tooltip("biwa", "丄", "平調")
+    assert "読み: じょう" in tip and "4弦・開放" in tip
+    assert "構成音: E2, B2, E3, A3" in tip and "A3 を拍頭に着地" in tip
+    assert "和音" in m.palette_tooltip("sho", "乞", "平調")
+    assert "F#4" in m.palette_tooltip("hichiriki", "舌", "平調")
+    assert "打ち方:" in m.palette_tooltip("kakko", "諸来", "平調")
+    m.set_enabled("ja-tooltip", False)
+    assert m.palette_tooltip("biwa", "丄", "平調") is None
+
+
+def test_later_enabled_plugin_wins_for_tooltips(isolated_home):
+    m = plugins.PluginManager()
+    for pid in ("english", "ja-tooltip"):
+        m.install_bundled(pid)
+    m.set_enabled("english", True)
+    m.set_enabled("ja-tooltip", True)
+    assert m.palette_tooltip("biwa", "一", "平調").startswith("読み")
+    m.set_enabled("ja-tooltip", False)
+    assert m.palette_tooltip("biwa", "一", "平調").startswith("Reading")
+
+
+@pytest.mark.parametrize("query, ids", [("英語", {"english"}), ("english tooltip", {"english"}),
+                                        ("柱", {"ja-tooltip"}), ("ポップアップ", {"english", "ja-tooltip"}),
+                                        ("synthesizer", set())])
+def test_search(query, ids):
     cat = plugins.PluginManager().bundled_catalog()
-    assert any(p.matches(query) for p in cat) is found
+    assert {p.id for p in cat if p.matches(query)} == ids
 
 
 def test_online_catalog_and_install_with_hash_check(isolated_home):
