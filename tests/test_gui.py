@@ -8,13 +8,23 @@ EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 
 @pytest.fixture
 def app():
-    try:
-        root = tk.Tk()
-        root.destroy()
-    except tk.TclError:
-        pytest.skip("画面がない環境")
+    import os
+    import time
     from gagaku import gui
-    a = gui.App(str(EXAMPLES / "wakatake_sojo.gaku"))
+    # 1つのプロセスで Tk を何度も作ると、まれに初期化に失敗するので数回やり直す。
+    # 画面のない環境(Linux の CI など)では作れないので飛ばす。
+    last = None
+    for _ in range(3):
+        try:
+            a = gui.App(str(EXAMPLES / "wakatake_sojo.gaku"))
+            break
+        except tk.TclError as e:
+            last = e
+            time.sleep(0.3)
+    else:
+        if os.environ.get("DISPLAY") is None and os.name != "nt":
+            pytest.skip("画面がない環境")
+        raise last
     a.withdraw()
     yield a
     a._dirty = False
@@ -63,6 +73,48 @@ def test_ma_toggle_writes_and_removes_header(app):
     app._set_ma()
     text = app.text.get("1.0", "end-1c")
     assert "ma:" not in text and score.parse(text).ma_beats == 0
+
+
+def test_english_plugin_switches_ui_and_back(app):
+    import tkinter as tk
+    app.plugins.install_bundled("english")
+    app.plugins.set_enabled("english", True)
+    app.update()
+    assert app.title().endswith("Gagaku Score Player")
+    assert app.left_tabs.tab(0, "text") == "Score text"
+    labels = {s: b.cget("text") for k, _, _, bs, _, _ in app._palette if k == "biwa" for b, s in bs}
+    assert labels["一"] == "Ichi（一）"
+    assert app._mixer_checks["sho"].cget("text") == "Shō"
+    # パレットのボタンにポップアップの説明が付く
+    assert "Reading" in app.plugins.palette_tooltip("biwa", "一", app._current_mode())
+    app.plugins.set_enabled("english", False)
+    app.update()
+    assert app.title().endswith("雅楽譜プレイヤー")
+    labels = {s: b.cget("text") for k, _, _, bs, _, _ in app._palette if k == "biwa" for b, s in bs}
+    assert labels["一"] == "一"
+
+
+def test_plugin_dialog_search_and_install(app):
+    from tkinter import messagebox
+    app.open_plugin_manager()
+    dlg = app._plugin_dialog
+    dlg.query.set("英語")
+    dlg.update()
+    assert dlg.tree.get_children() == ("english",)
+    dlg.query.set("no-such-plugin")
+    assert dlg.tree.get_children() == ()
+    dlg.query.set("english")
+    dlg.tree.selection_set("english")
+    original = messagebox.askokcancel
+    messagebox.askokcancel = lambda *a, **k: True
+    try:
+        dlg.install()
+    finally:
+        messagebox.askokcancel = original
+    assert "english" in app.plugins.active
+    dlg.toggle()                       # 有効 → 無効
+    assert "english" not in app.plugins.active
+    dlg.destroy()
 
 
 def test_beats_box_rebars_text(app):

@@ -1,0 +1,4 @@
+# プラグインのファイルは紹介サイトの index.json に SHA-256 を載せて照合するので、
+# 改行コードを変換せずバイト列のまま保存する
+gagaku/bundled_plugins/** -text
+docs/plugins/** -text

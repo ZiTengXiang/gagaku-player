@@ -1,4 +1,8 @@
-"""Tkinter GUI。"""
+"""Tkinter GUI。
+
+画面の文言はすべて App.t(キー, 既定の日本語) を通して出し、プラグインが差し替えられる
+ようにしている(キーの一覧は bundled_plugins/english/plugin.py の TEXTS を参照)。
+"""
 from __future__ import annotations
 
 import bisect
@@ -10,7 +14,7 @@ from fractions import Fraction
 from pathlib import Path
 from tkinter import filedialog, font as tkfont, messagebox, ttk
 
-from . import formatter, instruments, render, score as score_mod
+from . import formatter, instruments, plugins, render, score as score_mod
 from .audio import Player
 from .scoreview import ScoreView
 from .staffview import StaffView
@@ -44,12 +48,59 @@ tempo: 60
 . . 図 百 |
 """
 
+_MODE_RE = re.compile(r"^\s*(?:mode|調子)\s*[:：]\s*(\S+)", re.M | re.I)
+
+
 def _fmt_beats(x) -> str:
     """拍数を '1' '0.5' '1.25' のように書く。"""
     return f"{float(x):g}"
 
 
-FILETYPES = [("雅楽譜", "*.gaku"), ("テキスト", "*.txt"), ("すべて", "*.*")]
+class Tooltip:
+    """ウィジェットの上にしばらくカーソルを置くと出る、控えめな説明の吹き出し。"""
+
+    DELAY_MS = 450
+
+    def __init__(self, widget, text_func):
+        self.widget, self.text_func = widget, text_func
+        self.tip = None
+        self.job = None
+        widget.bind("<Enter>", self._schedule, add="+")
+        widget.bind("<Leave>", self._hide, add="+")
+        widget.bind("<ButtonPress>", self._hide, add="+")
+
+    def _schedule(self, _e=None):
+        self._cancel()
+        self.job = self.widget.after(self.DELAY_MS, self._show)
+
+    def _cancel(self):
+        if self.job:
+            self.widget.after_cancel(self.job)
+            self.job = None
+
+    def _show(self):
+        self.job = None
+        text = self.text_func()
+        if not text:
+            return
+        x = self.widget.winfo_rootx() + 8
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4
+        self.tip = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        try:
+            tw.attributes("-topmost", True)
+        except tk.TclError:
+            pass
+        tk.Label(tw, text=text, justify=tk.LEFT, background="#fffbea", foreground="#3a3228",
+                 relief=tk.SOLID, borderwidth=1, padx=7, pady=4,
+                 font=("Segoe UI", 9)).pack()
+
+    def _hide(self, _e=None):
+        self._cancel()
+        if self.tip is not None:
+            self.tip.destroy()
+            self.tip = None
 
 
 class App(tk.Tk):
@@ -75,6 +126,9 @@ class App(tk.Tk):
         self.playing = False
         self.rendering = False
         self._dirty = False
+        self._tr_items: list = []        # (文言を設定する関数, キー, 既定の文言)
+        self._palette: list = []         # (楽器キー, フレーム, [(ボタン, 譜字)])
+        self._mixer_checks: dict = {}
 
         fams = set(tkfont.families())
         # 縦をそろえるため等幅(全角=半角2文字分)のフォントを優先する
@@ -84,6 +138,11 @@ class App(tk.Tk):
                     if f in fams), "TkFixedFont")
         self.edit_font = tkfont.Font(family=fam, size=15)
         self.pal_font = tkfont.Font(family=fam, size=12)
+        self.pal_font_small = tkfont.Font(family=fam, size=10)
+
+        # プラグインは画面を作る前に読み込み、最初から差し替えた文言で作る
+        self.plugins = plugins.PluginManager(current_mode=self._current_mode, on_change=self.retranslate)
+        self.plugins.load_enabled()
 
         self._build()
         if path:
@@ -100,43 +159,96 @@ class App(tk.Tk):
         # 境目を左端まで寄せて譜面の欄が見えなくならないようにする
         self._body.bind("<ButtonRelease-1>", lambda e: self._clamp_sash())
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        for pid, err in self.plugins.errors.items():
+            self._update_status(err)
+
+    # ------------------------------------------------------------ 文言(プラグインで差し替え可能)
+    def t(self, key: str, default: str, **kw) -> str:
+        s = self.plugins.texts().get(key, default)
+        try:
+            return s.format(**kw) if kw else s
+        except (KeyError, IndexError, ValueError):
+            return default.format(**kw) if kw else default
+
+    def _tr(self, setter, key: str, default: str):
+        """文言を設定し、プラグインの切り替え時に設定し直せるよう覚えておく。"""
+        self._tr_items.append((setter, key, default))
+        setter(self.t(key, default))
+
+    def _tr_widget(self, widget, key: str, default: str, option: str = "text"):
+        self._tr(lambda s, w=widget: w.configure(**{option: s}), key, default)
+        return widget
+
+    def inst_label(self, key: str) -> str:
+        return self.plugins.instrument_label(key) or instruments.INSTRUMENTS[key].display
+
+    def palette_label(self, inst_key: str, sym: str) -> str:
+        return self.plugins.palette_label(inst_key, sym) or sym
+
+    def _current_mode(self) -> str:
+        text = getattr(self, "text", None)
+        if text is not None:
+            m = _MODE_RE.search(text.get("1.0", "end-1c").split("[", 1)[0])
+            if m and m.group(1) in instruments.MODES:
+                return m.group(1)
+        return "平調"
+
+    def retranslate(self):
+        """プラグインの有効・無効が変わったら、画面の文言を設定し直す。"""
+        if not hasattr(self, "text"):
+            return
+        for setter, key, default in self._tr_items:
+            try:
+                setter(self.t(key, default))
+            except tk.TclError:
+                pass
+        self._layout_palette()
+        for key, chk in self._mixer_checks.items():
+            chk.configure(text=self.inst_label(key))
+        for v in self.views:
+            v.redraw()
+        self._update_title()
+        self._update_status()
 
     # ------------------------------------------------------------ UI 構築
     def _build(self):
+        self._build_menu()
         bar = ttk.Frame(self, padding=(6, 4))
         bar.pack(side=tk.TOP, fill=tk.X)
-        for label, cmd in (("新規", self.new_file), ("開く", self.ask_open),
-                           ("保存", self.save), ("WAV書き出し", self.export_wav),
-                           ("縦にそろえる", lambda: self.align_text(auto=False))):
-            ttk.Button(bar, text=label, command=cmd).pack(side=tk.LEFT, padx=2)
+        for key, label, cmd in (("tb.new", "新規", self.new_file), ("tb.open", "開く", self.ask_open),
+                                ("tb.save", "保存", self.save), ("tb.export", "WAV書き出し", self.export_wav),
+                                ("tb.align", "縦にそろえる", lambda: self.align_text(auto=False))):
+            self._tr_widget(ttk.Button(bar, command=cmd), key, label).pack(side=tk.LEFT, padx=2)
         ttk.Separator(bar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
-        ttk.Button(bar, text="▶ 再生", command=self.play).pack(side=tk.LEFT, padx=2)
-        ttk.Button(bar, text="▶ カーソルから", command=lambda: self.play(from_cursor=True)).pack(side=tk.LEFT, padx=2)
-        ttk.Button(bar, text="■ 停止", command=self.stop).pack(side=tk.LEFT, padx=2)
+        self._tr_widget(ttk.Button(bar, command=self.play), "tb.play", "▶ 再生").pack(side=tk.LEFT, padx=2)
+        self._tr_widget(ttk.Button(bar, command=lambda: self.play(from_cursor=True)),
+                        "tb.play_cursor", "▶ カーソルから").pack(side=tk.LEFT, padx=2)
+        self._tr_widget(ttk.Button(bar, command=self.stop), "tb.stop", "■ 停止").pack(side=tk.LEFT, padx=2)
         ttk.Separator(bar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
-        ttk.Label(bar, text="1小節").pack(side=tk.LEFT)
+        self._tr_widget(ttk.Label(bar), "tb.bar", "1小節").pack(side=tk.LEFT)
         self.beats_var = tk.StringVar(value="4")
         beats_box = ttk.Spinbox(bar, from_=1, to=32, increment=1, width=3, textvariable=self.beats_var,
                                 command=self._set_beats)
         beats_box.pack(side=tk.LEFT)
         beats_box.bind("<Return>", lambda e: self._set_beats())
         beats_box.bind("<FocusOut>", lambda e: self._set_beats())
-        ttk.Label(bar, text="拍").pack(side=tk.LEFT, padx=(0, 10))
+        self._tr_widget(ttk.Label(bar), "tb.beats_unit", "拍").pack(side=tk.LEFT, padx=(0, 10))
         # 小節の間(ま): オンにすると各小節の終わりに間を挟み、その間は鳴っている音を延ばす
         self.ma_on = tk.BooleanVar(value=False)
         self.ma_len = tk.StringVar(value="1")
-        ttk.Checkbutton(bar, text="小節の間(ま)", variable=self.ma_on, command=self._set_ma).pack(side=tk.LEFT)
+        self._tr_widget(ttk.Checkbutton(bar, variable=self.ma_on, command=self._set_ma),
+                        "tb.ma", "小節の間(ま)").pack(side=tk.LEFT)
         ma_box = ttk.Spinbox(bar, from_=0.25, to=16, increment=0.25, width=4, textvariable=self.ma_len,
                              command=self._set_ma)
         ma_box.pack(side=tk.LEFT)
         ma_box.bind("<Return>", lambda e: self._set_ma())
         ma_box.bind("<FocusOut>", lambda e: self._set_ma())
-        ttk.Label(bar, text="拍").pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(bar, text="速さ").pack(side=tk.LEFT)
+        self._tr_widget(ttk.Label(bar), "tb.beats_unit", "拍").pack(side=tk.LEFT, padx=(0, 10))
+        self._tr_widget(ttk.Label(bar), "tb.speed", "速さ").pack(side=tk.LEFT)
         self.speed = tk.DoubleVar(value=100)
         ttk.Spinbox(bar, from_=25, to=300, increment=5, width=5, textvariable=self.speed).pack(side=tk.LEFT)
         ttk.Label(bar, text="%").pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(bar, text="残響").pack(side=tk.LEFT)
+        self._tr_widget(ttk.Label(bar), "tb.reverb", "残響").pack(side=tk.LEFT)
         self.reverb = tk.DoubleVar(value=0.3)
         ttk.Scale(bar, from_=0, to=0.8, variable=self.reverb, length=110).pack(side=tk.LEFT)
         self.progress = ttk.Progressbar(bar, length=140, mode="determinate")
@@ -145,15 +257,20 @@ class App(tk.Tk):
         body = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         body.pack(fill=tk.BOTH, expand=True)
 
-        # 左: 「譜面テキスト」(編集) と「楽譜表示」(全楽器を拍でそろえた総譜) のタブ
+        # 左: 「譜面テキスト」(編集)・「楽譜表示」・「五線譜」のタブ
         self.left_tabs = ttk.Notebook(body)
         left = ttk.Frame(self.left_tabs)
-        self.left_tabs.add(left, text="譜面テキスト")
+        self.left_tabs.add(left)
         self.score_view = ScoreView(self.left_tabs, self.edit_font.cget("family"), on_click=self._jump_to_event)
-        self.left_tabs.add(self.score_view, text="楽譜表示")
+        self.left_tabs.add(self.score_view)
         self.staff_view = StaffView(self.left_tabs, self.edit_font.cget("family"), on_click=self._jump_to_event)
-        self.left_tabs.add(self.staff_view, text="五線譜")
+        self.left_tabs.add(self.staff_view)
         self.views = [self.score_view, self.staff_view]
+        for v in self.views:
+            v.label_func = self.inst_label
+        for tab, key, default in ((left, "tab.text", "譜面テキスト"), (self.score_view, "tab.score", "楽譜表示"),
+                                  (self.staff_view, "tab.staff", "五線譜")):
+            self._tr(lambda s, w=tab: self.left_tabs.tab(w, text=s), key, default)
         self.left_tabs.bind("<<NotebookTabChanged>>", lambda e: self._refresh_score_view())
         self.text = tk.Text(left, font=self.edit_font, undo=True, wrap=tk.NONE,
                             padx=8, pady=6, insertwidth=2, spacing1=2, spacing3=3)
@@ -178,45 +295,14 @@ class App(tk.Tk):
         right = ttk.Frame(body, padding=4)
         body.add(right, weight=2)
         self._body = body
-        mix = ttk.LabelFrame(right, text="ミキサー(チェックを外すとミュート)", padding=4)
+        mix = self._tr_widget(ttk.LabelFrame(right, padding=4), "mixer.title", "ミキサー(チェックを外すとミュート)")
         mix.pack(side=tk.BOTTOM, fill=tk.X)
-        ttk.Label(right, text="譜字パレット(クリックで挿入)").pack(anchor=tk.W)
-        nb = ttk.Notebook(right)
+        self._tr_widget(ttk.Label(right), "palette.title", "譜字パレット(クリックで挿入)").pack(anchor=tk.W)
+        self.palette_nb = nb = ttk.Notebook(right)
         nb.pack(fill=tk.BOTH, expand=True, pady=(2, 6))
         for inst in instruments.INSTRUMENTS.values():
-            frame = ttk.Frame(nb, padding=4)
-            nb.add(frame, text=inst.display)
-            ttk.Button(frame, text=f"[{inst.display}] 段を挿入",
-                       command=lambda d=inst.display: self.insert_text(f"\n[{d}]\n")).grid(
-                row=0, column=0, columnspan=7, sticky="we", pady=(0, 4))
-            cols = 7
-            items = inst.palette + (["+"] if inst.key == "biwa" else []) + ["-", ".", "|"]
-            half = None
-            if inst.key == "koto":
-                half = tk.BooleanVar(value=False)
-                ttk.Checkbutton(frame, text="½拍で挿入(譜字・休みに :1/2 を付ける)", variable=half).grid(
-                    row=98, column=0, columnspan=cols, sticky="w", pady=(6, 0))
-
-            def ins(s, half=half):
-                if s == "+":
-                    # 直前の譜字につなげる(「一」「+」「ク」と押すと「一+ク」)
-                    if self.text.get("insert -1c", "insert") == " ":
-                        self.text.delete("insert -1c", "insert")
-                    self.insert_text("+")
-                    return
-                if self.text.get("insert -1c", "insert") == "+":
-                    self.insert_text(s + " ")
-                    return
-                if half is not None and half.get() and s not in ("-", "|"):
-                    s += ":1/2"
-                self.insert_text(s + " ")
-
-            for i, sym in enumerate(items):
-                b = tk.Button(frame, text=sym, font=self.pal_font, width=3, relief=tk.GROOVE,
-                              command=lambda s=sym, f=ins: f(s))
-                b.grid(row=1 + i // cols, column=i % cols, padx=1, pady=1, sticky="nsew")
-            ttk.Label(frame, text=_HELP.get(inst.key, ""), wraplength=480, justify=tk.LEFT,
-                      foreground="#555").grid(row=99, column=0, columnspan=cols, sticky="w", pady=(6, 0))
+            self._build_palette_tab(nb, inst)
+        self._layout_palette()
 
         self.mute_vars: dict[str, tk.BooleanVar] = {}
         self.vol_vars: dict[str, tk.DoubleVar] = {}
@@ -224,7 +310,9 @@ class App(tk.Tk):
             on = tk.BooleanVar(value=True)
             vol = tk.DoubleVar(value=1.0)
             self.mute_vars[inst.key], self.vol_vars[inst.key] = on, vol
-            ttk.Checkbutton(mix, text=inst.display, variable=on).grid(row=r, column=0, sticky="w")
+            chk = ttk.Checkbutton(mix, text=self.inst_label(inst.key), variable=on)
+            chk.grid(row=r, column=0, sticky="w")
+            self._mixer_checks[inst.key] = chk
             ttk.Scale(mix, from_=0, to=2, variable=vol, length=200).grid(row=r, column=1, sticky="we", padx=4)
         mix.columnconfigure(1, weight=1)
 
@@ -239,6 +327,81 @@ class App(tk.Tk):
         self.bind_all("<Escape>", lambda e: self.stop())
         self.bind_all("<Control-Shift-F>", lambda e: self.align_text(auto=False))
         self.bind_all("<Control-Shift-f>", lambda e: self.align_text(auto=False))
+
+    def _build_menu(self):
+        menubar = tk.Menu(self, tearoff=False)
+        filem = tk.Menu(menubar, tearoff=False)
+        plugm = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label="File", menu=filem)
+        menubar.add_cascade(label="Plugins", menu=plugm)
+        self._tr(lambda s: menubar.entryconfigure(0, label=s), "menu.file", "ファイル")
+        self._tr(lambda s: menubar.entryconfigure(1, label=s), "menu.plugins", "プラグイン")
+        for i, (key, label, cmd) in enumerate((
+                ("menu.file.new", "新規", self.new_file), ("menu.file.open", "開く…", self.ask_open),
+                ("menu.file.save", "保存", self.save), ("menu.file.export", "WAV書き出し…", self.export_wav),
+                ("menu.file.quit", "終了", self.on_close))):
+            filem.add_command(label=label, command=cmd)
+            self._tr(lambda s, i=i: filem.entryconfigure(i, label=s), key, label)
+        plugm.add_command(label="Plugins", command=self.open_plugin_manager)
+        self._tr(lambda s: plugm.entryconfigure(0, label=s), "menu.plugins.manage", "プラグインを探す・管理…")
+        self.config(menu=menubar)
+
+    def _build_palette_tab(self, nb, inst):
+        frame = ttk.Frame(nb, padding=4)
+        nb.add(frame)
+        self._tr(lambda s, k=inst.key, f=frame: nb.tab(f, text=self.inst_label(k)), f"inst.{inst.key}", "")
+        head = ttk.Button(frame, command=lambda d=inst.display: self.insert_text(f"\n[{d}]\n"))
+        self._tr(lambda s, w=head, d=inst.display: w.configure(text=s.format(name=d)),
+                 "palette.insert_section", "[{name}] 段を挿入")
+        items = inst.palette + (["+"] if inst.key == "biwa" else []) + ["-", ".", "|"]
+        half = None
+        extras = []
+        if inst.key == "koto":
+            half = tk.BooleanVar(value=False)
+            extras.append(self._tr_widget(ttk.Checkbutton(frame, variable=half), "palette.koto_half",
+                                          "½拍で挿入(譜字・休みに :1/2 を付ける)"))
+        help_lbl = ttk.Label(frame, wraplength=480, justify=tk.LEFT, foreground="#555")
+        self._tr_widget(help_lbl, f"help.{inst.key}", _HELP.get(inst.key, ""))
+
+        def ins(s, half=half):
+            if s == "+":
+                # 直前の譜字につなげる(「一」「+」「ク」と押すと「一+ク」)
+                if self.text.get("insert -1c", "insert") == " ":
+                    self.text.delete("insert -1c", "insert")
+                self.insert_text("+")
+                return
+            if self.text.get("insert -1c", "insert") == "+":
+                self.insert_text(s + " ")
+                return
+            if half is not None and half.get() and s not in ("-", "|"):
+                s += ":1/2"
+            self.insert_text(s + " ")
+
+        buttons = []
+        for sym in items:
+            b = tk.Button(frame, relief=tk.GROOVE, command=lambda s=sym, f=ins: f(s))
+            Tooltip(b, lambda k=inst.key, s=sym: self.plugins.palette_tooltip(k, s, self._current_mode()))
+            buttons.append((b, sym))
+        self._palette.append((inst.key, frame, head, buttons, extras, help_lbl))
+
+    def _layout_palette(self):
+        """譜字ボタンの表示名を設定し直し、長さに合わせて並べ直す。"""
+        for key, frame, head, buttons, extras, help_lbl in self._palette:
+            labels = [self.palette_label(key, s) for _, s in buttons]
+            longest = max(len(lab) for lab in labels)
+            long = longest > 3
+            cols = 7 if not long else (4 if longest <= 10 else 3)
+            for c in range(7):
+                use = long and c < cols
+                frame.columnconfigure(c, weight=1 if use else 0, uniform="pal" if use else "")
+            head.grid(row=0, column=0, columnspan=cols, sticky="we", pady=(0, 4))
+            for i, ((b, _), lab) in enumerate(zip(buttons, labels)):
+                b.configure(text=lab, font=self.pal_font_small if long else self.pal_font,
+                            width=0 if long else 3)
+                b.grid(row=1 + i // cols, column=i % cols, padx=1, pady=1, sticky="nsew")
+            for j, w in enumerate(extras):
+                w.grid(row=98 + j, column=0, columnspan=cols, sticky="w", pady=(6, 0))
+            help_lbl.grid(row=99 + len(extras), column=0, columnspan=cols, sticky="w", pady=(6, 0))
 
     # ------------------------------------------------------------ 左右の境目
     MIN_LEFT = 320   # 譜面の欄の最小幅(px)
@@ -256,6 +419,13 @@ class App(tk.Tk):
         w = self._body.winfo_width()
         if w >= 2 * self.MIN_LEFT and self._body.sashpos(0) < self.MIN_LEFT:
             self._body.sashpos(0, self.MIN_LEFT)
+
+    # ------------------------------------------------------------ プラグイン
+    def open_plugin_manager(self):
+        if getattr(self, "_plugin_dialog", None) is not None and self._plugin_dialog.winfo_exists():
+            self._plugin_dialog.lift()
+            return
+        self._plugin_dialog = PluginDialog(self)
 
     # ------------------------------------------------------------ 編集補助
     def insert_text(self, s: str):
@@ -279,7 +449,8 @@ class App(tk.Tk):
             new = formatter.format_text(old).rstrip("\n")
         except score_mod.ScoreError as e:
             if not auto:
-                messagebox.showerror("整形できません", f"譜面にエラーがあります。\n{e}")
+                messagebox.showerror(self.t("dlg.cannot_align", "整形できません"),
+                                     self.t("dlg.align_error", "譜面にエラーがあります。\n{err}", err=e))
             return False
         if new == old:
             return True
@@ -308,7 +479,7 @@ class App(tk.Tk):
         self.text.see(tk.INSERT)
         self._highlight_syntax()
         if not auto:
-            self._update_status("拍の頭が縦にそろうように整形しました(1段5小節)")
+            self._update_status(self.t("status.aligned", "拍の頭が縦にそろうように整形しました(1段5小節)"))
         return True
 
     def _highlight_syntax(self):
@@ -333,20 +504,24 @@ class App(tk.Tk):
 
     def _update_status(self, msg: str | None = None):
         line, col = self.text.index(tk.INSERT).split(".")
-        base = f"{line}行 {int(col) + 1}列"
+        base = self.t("status.pos", "{line}行 {col}列", line=line, col=int(col) + 1)
         if msg is not None:
             self._last_msg = msg
         self.status.set(f"{base}    {getattr(self, '_last_msg', '')}")
 
     def _update_title(self):
-        name = self.path.name if self.path else "無題"
-        self.title(f"{'*' if self._dirty else ''}{name} - 雅楽譜プレイヤー")
+        name = self.path.name if self.path else self.t("title.untitled", "無題")
+        self.title(f"{'*' if self._dirty else ''}{name} - {self.t('title.app', '雅楽譜プレイヤー')}")
+
+    def _filetypes(self):
+        return [(self.t("file.gaku", "雅楽譜"), "*.gaku"), (self.t("file.txt", "テキスト"), "*.txt"),
+                (self.t("file.all", "すべて"), "*.*")]
 
     # ------------------------------------------------------------ ファイル
     def _confirm_discard(self) -> bool:
         if not self._dirty:
             return True
-        r = messagebox.askyesnocancel("確認", "変更を保存しますか?")
+        r = messagebox.askyesnocancel(self.t("dlg.confirm", "確認"), self.t("dlg.save_changes", "変更を保存しますか?"))
         if r is None:
             return False
         return self.save() if r else True
@@ -368,7 +543,7 @@ class App(tk.Tk):
     def ask_open(self):
         if not self._confirm_discard():
             return
-        p = filedialog.askopenfilename(filetypes=FILETYPES)
+        p = filedialog.askopenfilename(filetypes=self._filetypes())
         if p:
             self.open_file(Path(p))
 
@@ -417,7 +592,7 @@ class App(tk.Tk):
         self.align_text(auto=True)
         self._highlight_syntax()
         self._refresh_score_view()
-        self._update_status(f"1小節 {val} 拍で区切り直しました")
+        self._update_status(self.t("status.rebarred", "1小節 {n} 拍で区切り直しました", n=val))
 
     def _write_header(self, keys, new_line: str | None):
         """ヘッダの keys のいずれかの行を new_line に置き換える(なければ追加、None なら削除)。"""
@@ -470,12 +645,12 @@ class App(tk.Tk):
             return
         self._write_header(score_mod.MA_KEYS, f"ma: {state[1]}" if state[0] else None)
         self._ma_applied = state
-        self._update_status(f"小節の間(ま): {state[1]} 拍(再生・書き出しに反映)" if state[0]
-                            else "小節の間(ま)なし(インテンポ)")
+        self._update_status(self.t("status.ma_on", "小節の間(ま): {n} 拍(再生・書き出しに反映)", n=state[1])
+                            if state[0] else self.t("status.ma_off", "小節の間(ま)なし(インテンポ)"))
 
     def save(self) -> bool:
         if self.path is None:
-            p = filedialog.asksaveasfilename(defaultextension=".gaku", filetypes=FILETYPES)
+            p = filedialog.asksaveasfilename(defaultextension=".gaku", filetypes=self._filetypes())
             if not p:
                 return False
             self.path = Path(p)
@@ -483,7 +658,7 @@ class App(tk.Tk):
         self.path.write_text(self.text.get("1.0", "end-1c") + "\n", encoding="utf-8")
         self._dirty = False
         self._update_title()
-        self._update_status(f"保存しました: {self.path}")
+        self._update_status(self.t("status.saved", "保存しました: {path}", path=self.path))
         return True
 
     # ------------------------------------------------------------ 楽譜表示
@@ -503,7 +678,7 @@ class App(tk.Tk):
         try:
             sc = score_mod.parse(self.text.get("1.0", "end-1c"))
         except score_mod.ScoreError as e:
-            view.set_message(f"譜面エラー: {e}")
+            view.set_message(self.t("status.score_error", "譜面エラー: {err}", err=e))
             return
         view.set_score(sc)
 
@@ -514,7 +689,8 @@ class App(tk.Tk):
         self.text.tag_remove(tk.SEL, "1.0", tk.END)
         self.text.tag_add(tk.SEL, idx, f"{ev.line}.{ev.col_end}")
         self.text.see(idx)
-        self._update_status(f"{ev.line}行の「{ev.symbol}」を選択(F6 でここから再生)")
+        self._update_status(self.t("status.selected", "{line}行の「{sym}」を選択(F6 でここから再生)",
+                                   line=ev.line, sym=ev.symbol))
 
     # ------------------------------------------------------------ 解析・レンダ
     def _parse(self):
@@ -526,11 +702,11 @@ class App(tk.Tk):
         except score_mod.ScoreError as e:
             self.text.tag_add("error", f"{e.line}.0", f"{e.line}.end")
             self.text.see(f"{e.line}.0")
-            self._update_status(f"エラー: {e}")
-            messagebox.showerror("譜面エラー", str(e))
+            self._update_status(self.t("status.error", "エラー: {err}", err=e))
+            messagebox.showerror(self.t("dlg.score_error", "譜面エラー"), str(e))
             return None
         if not sc.events:
-            messagebox.showinfo("情報", "音符がありません")
+            messagebox.showinfo(self.t("dlg.info", "情報"), self.t("dlg.no_notes", "音符がありません"))
             return None
         factor = max(0.1, float(self.speed.get() or 100) / 100)
         sc.tempo *= factor
@@ -544,7 +720,7 @@ class App(tk.Tk):
         mute = {k for k, v in self.mute_vars.items() if not v.get()}
         vols = {k: v.get() for k, v in self.vol_vars.items()}
         rev = self.reverb.get()
-        self._update_status("レンダリング中…")
+        self._update_status(self.t("status.rendering", "レンダリング中…"))
 
         def prog(x):
             self.after(0, lambda: self.progress.configure(value=x * 100))
@@ -555,7 +731,7 @@ class App(tk.Tk):
                 self.after(0, lambda: on_done(data, sc))
             except Exception as e:  # noqa: BLE001
                 err = e
-                self.after(0, lambda: messagebox.showerror("レンダリング失敗", repr(err)))
+                self.after(0, lambda: messagebox.showerror(self.t("dlg.render_failed", "レンダリング失敗"), repr(err)))
             finally:
                 self.rendering = False
 
@@ -582,7 +758,7 @@ class App(tk.Tk):
             try:
                 self.player.play(data[start:])
             except Exception as e:  # noqa: BLE001
-                messagebox.showerror("再生エラー", str(e))
+                messagebox.showerror(self.t("dlg.play_error", "再生エラー"), str(e))
                 return
             self.audio = data
             self.events = sorted(sc.events, key=lambda e: e.start_sec)
@@ -593,7 +769,8 @@ class App(tk.Tk):
             self.duration = len(data) / render.SR
             for v in self.views:  # 再生中の譜面と同じ音符オブジェクトでハイライトする
                 v.set_score(sc)
-            msg = f"再生中 ({sc.title or '無題'} / {sc.mode} / {sc.tempo:g} BPM)"
+            msg = self.t("status.playing", "再生中 ({title} / {mode} / {bpm} BPM)",
+                         title=sc.title or self.t("title.untitled", "無題"), mode=sc.mode, bpm=f"{sc.tempo:g}")
             if sc.warnings:
                 msg += "  ⚠ " + " / ".join(sc.warnings)
             self._update_status(msg)
@@ -626,7 +803,7 @@ class App(tk.Tk):
             self.playing = False
             for v in self.views:
                 v.set_active([])
-            self._update_status("再生終了")
+            self._update_status(self.t("status.finished", "再生終了"))
             return
         self.after(40, self._tick)
 
@@ -649,7 +826,7 @@ class App(tk.Tk):
 
         def done(data, _sc):
             render.write_wav(p, data)
-            self._update_status(f"書き出しました: {p}")
+            self._update_status(self.t("status.exported", "書き出しました: {path}", path=p))
 
         self._render_async(sc, done)
 
@@ -657,6 +834,193 @@ class App(tk.Tk):
         if self._confirm_discard():
             self.stop()
             self.destroy()
+
+
+class PluginDialog(tk.Toplevel):
+    """プラグインの検索・インストール・有効/無効の切り替え・アンインストール。"""
+
+    def __init__(self, app: App):
+        super().__init__(app)
+        self.app = app
+        self.mgr = app.plugins
+        self.catalog = self.mgr.bundled_catalog()
+        self.geometry("760x440")
+        self.transient(app)
+        t = app.t
+        self.title(t("pm.title", "プラグイン"))
+
+        top = ttk.Frame(self, padding=(10, 10, 10, 4))
+        top.pack(fill=tk.X)
+        self.search_lbl = ttk.Label(top, text=t("pm.search", "検索"))
+        self.search_lbl.pack(side=tk.LEFT)
+        self.query = tk.StringVar()
+        entry = ttk.Entry(top, textvariable=self.query, width=36)
+        entry.pack(side=tk.LEFT, padx=6)
+        entry.focus_set()
+        self.query.trace_add("write", lambda *a: self.refresh_list())
+        self.refresh_btn = ttk.Button(top, text=t("pm.refresh", "オンラインの一覧を読み込む"), command=self.load_online)
+        self.refresh_btn.pack(side=tk.RIGHT)
+
+        cols = ("name", "version", "status", "desc")
+        self.tree = ttk.Treeview(self, columns=cols, show="headings", height=10, selectmode="browse")
+        for c, (key, default, w) in zip(cols, (("pm.col.name", "名前", 150), ("pm.col.version", "版", 60),
+                                               ("pm.col.status", "状態", 90),
+                                               ("pm.col.desc", "説明", 420))):
+            self.tree.heading(c, text=t(key, default))
+            self.tree.column(c, width=w, anchor=tk.W, stretch=(c == "desc"))
+        self.tree.pack(fill=tk.BOTH, expand=True, padx=10)
+        self.tree.bind("<<TreeviewSelect>>", lambda e: self.update_buttons())
+        self.tree.bind("<Double-1>", lambda e: self.toggle())
+
+        btns = ttk.Frame(self, padding=10)
+        btns.pack(fill=tk.X)
+        self.install_btn = ttk.Button(btns, text=t("pm.install", "インストール"), command=self.install)
+        self.toggle_btn = ttk.Button(btns, text=t("pm.enable", "有効にする"), command=self.toggle)
+        self.remove_btn = ttk.Button(btns, text=t("pm.uninstall", "アンインストール"), command=self.uninstall)
+        for b in (self.install_btn, self.toggle_btn, self.remove_btn):
+            b.pack(side=tk.LEFT, padx=(0, 6))
+        self.close_btn = ttk.Button(btns, text=t("pm.close", "閉じる"), command=self.destroy)
+        self.close_btn.pack(side=tk.RIGHT)
+        self.msg = tk.StringVar(value=t("pm.warn", "プラグインは Python のコードとして動きます。信頼できるものだけを入れてください。"))
+        ttk.Label(self, textvariable=self.msg, foreground="#7a5a20", padding=(10, 0, 10, 10),
+                  wraplength=720).pack(fill=tk.X)
+        self.refresh_list()
+        self.load_online()
+
+    # ---------- 一覧
+    def _rows(self):
+        installed = {p.id: p for p in self.mgr.installed()}
+        merged = self.mgr.merge_catalogs(self.catalog, list(installed.values()))
+        return [(p, installed.get(p.id)) for p in merged]
+
+    def refresh_list(self):
+        t = self.app.t
+        lang = "en" if self.app.t("pm.lang", "ja") == "en" else "ja"
+        sel = self.selected_id()
+        self.tree.delete(*self.tree.get_children())
+        for info, inst in self._rows():
+            if not info.matches(self.query.get()):
+                continue
+            if inst is None:
+                status = t("pm.status.not_installed", "未インストール")
+            elif info.id in self.mgr.active:
+                status = t("pm.status.enabled", "有効")
+            else:
+                status = t("pm.status.disabled", "無効")
+            version = inst.version if inst else info.version
+            if inst and info.version != inst.version and info.source != "installed":
+                version = f"{inst.version} → {info.version}"
+            self.tree.insert("", tk.END, iid=info.id, values=(info.name, version, status, info.describe(lang)))
+        if sel and self.tree.exists(sel):
+            self.tree.selection_set(sel)
+        self.update_buttons()
+
+    def selected_id(self):
+        s = self.tree.selection()
+        return s[0] if s else None
+
+    def _info(self, pid):
+        return next((p for p, _ in self._rows() if p.id == pid), None)
+
+    def update_buttons(self):
+        t = self.app.t
+        pid = self.selected_id()
+        installed = pid is not None and self.mgr.installed_info(pid) is not None
+        info = self._info(pid) if pid else None
+        newer = installed and info and info.source != "installed" and info.version != self.mgr.installed_info(pid).version
+        self.install_btn.configure(state=tk.NORMAL if pid and (not installed or newer) else tk.DISABLED,
+                                   text=t("pm.update", "更新") if newer else t("pm.install", "インストール"))
+        self.toggle_btn.configure(state=tk.NORMAL if installed else tk.DISABLED,
+                                  text=t("pm.disable", "無効にする") if pid in self.mgr.active
+                                  else t("pm.enable", "有効にする"))
+        self.remove_btn.configure(state=tk.NORMAL if installed else tk.DISABLED)
+
+    def load_online(self):
+        self.refresh_btn.configure(state=tk.DISABLED)
+        self.msg.set(self.app.t("pm.loading", "オンラインの一覧を読み込んでいます…"))
+
+        def work():
+            try:
+                online = self.mgr.online_catalog()
+                err = None
+            except Exception as e:  # noqa: BLE001
+                online, err = [], e
+            try:
+                self.after(0, lambda: self._online_done(online, err))
+            except (RuntimeError, tk.TclError):
+                pass   # 読み込み中にダイアログやアプリが閉じられた
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _online_done(self, online, err):
+        if not self.winfo_exists():
+            return
+        self.refresh_btn.configure(state=tk.NORMAL)
+        if err is None:
+            self.catalog = self.mgr.merge_catalogs(self.mgr.bundled_catalog(), online)
+            self.msg.set(self.app.t("pm.online_ok", "オンラインの一覧を読み込みました({n} 件)", n=len(online)))
+        else:
+            self.msg.set(self.app.t("pm.online_failed", "オンラインの一覧を読み込めませんでした(同梱の一覧を表示しています)"))
+        self.refresh_list()
+
+    # ---------- 操作
+    def install(self):
+        t = self.app.t
+        info = self._info(self.selected_id())
+        if info is None:
+            return
+        if not messagebox.askokcancel(t("pm.title", "プラグイン"),
+                                      t("pm.confirm_install", "「{name}」をインストールしますか?\n"
+                                        "プラグインは Python のコードとして動きます。", name=info.name), parent=self):
+            return
+        try:
+            if info.source == "online":
+                self.mgr.install_online(info)
+            else:
+                self.mgr.install_bundled(info.id)
+            self.mgr.set_enabled(info.id, True)
+            self._retitle()
+            self.msg.set(self.app.t("pm.installed_ok", "「{name}」をインストールして有効にしました", name=info.name))
+        except plugins.PluginError as e:
+            messagebox.showerror(t("pm.title", "プラグイン"), str(e), parent=self)
+        self.refresh_list()
+
+    def toggle(self):
+        pid = self.selected_id()
+        if pid is None or self.mgr.installed_info(pid) is None:
+            return
+        try:
+            self.mgr.set_enabled(pid, pid not in self.mgr.active)
+        except plugins.PluginError as e:
+            messagebox.showerror(self.app.t("pm.title", "プラグイン"), str(e), parent=self)
+        self._retitle()
+        self.refresh_list()
+
+    def uninstall(self):
+        t = self.app.t
+        pid = self.selected_id()
+        info = pid and self.mgr.installed_info(pid)
+        if not info:
+            return
+        if messagebox.askokcancel(t("pm.title", "プラグイン"),
+                                  t("pm.confirm_uninstall", "「{name}」をアンインストールしますか?", name=info.name),
+                                  parent=self):
+            self.mgr.uninstall(pid)
+            self._retitle()
+            self.refresh_list()
+
+    def _retitle(self):
+        """このダイアログ自身の文言も、言語プラグインの切り替えに合わせて付け直す。"""
+        t = self.app.t
+        self.title(t("pm.title", "プラグイン"))
+        self.search_lbl.configure(text=t("pm.search", "検索"))
+        self.close_btn.configure(text=t("pm.close", "閉じる"))
+        self.msg.set(t("pm.warn", "プラグインは Python のコードとして動きます。信頼できるものだけを入れてください。"))
+        self.refresh_btn.configure(text=t("pm.refresh", "オンラインの一覧を読み込む"))
+        for c, key, default in (("name", "pm.col.name", "名前"), ("version", "pm.col.version", "版"),
+                                ("status", "pm.col.status", "状態"), ("desc", "pm.col.desc", "説明")):
+            self.tree.heading(c, text=t(key, default))
+        self.remove_btn.configure(text=t("pm.uninstall", "アンインストール"))
 
 
 _HELP = {

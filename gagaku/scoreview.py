@@ -13,6 +13,8 @@ class ScoreView(ttk.Frame):
     def __init__(self, master, family: str, on_click=None):
         super().__init__(master)
         self.on_click = on_click
+        # 楽器名の表示(プラグインで英語などに差し替えられる)
+        self.label_func = lambda key: instruments.INSTRUMENTS[key].display
         self.canvas = tk.Canvas(self, background="#fffdf7", highlightthickness=0)
         ys = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=ys.set)
@@ -85,7 +87,7 @@ class ScoreView(ttk.Frame):
         parts = [k for k in instruments.INSTRUMENTS if k in {e.part for e in sc.events}]
         bars = sc.bars()
         systems = [bars[i:i + BARS_PER_SYSTEM] for i in range(0, len(bars), BARS_PER_SYSTEM)]
-        label_w = self.label_font.measure("篳篥") + 24
+        label_w = max(self.label_font.measure(self.label_func(k)) for k in parts) + 24
         margin = 12
         max_beats = max(float(s[-1][1] - s[0][0]) for s in systems)
         ppb = (width - label_w - 2 * margin) / max_beats   # 1拍あたりのピクセル
@@ -118,7 +120,7 @@ class ScoreView(ttk.Frame):
             c.create_line(x_of(s1), top - 2, x_of(s1), bottom, fill="#7a6a55", width=1.5)
             # 楽器名
             for r, k in enumerate(parts):
-                c.create_text(label_w - 10, top + r * row_h + row_h / 2, text=instruments.INSTRUMENTS[k].display,
+                c.create_text(label_w - 10, top + r * row_h + row_h / 2, text=self.label_func(k),
                               anchor="e", fill="#8a1c1c", font=self.label_font)
             # 音
             for r, k in enumerate(parts):

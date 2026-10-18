@@ -60,6 +60,8 @@ class StaffView(ttk.Frame):
     def __init__(self, master, family: str, on_click=None):
         super().__init__(master)
         self.on_click = on_click
+        # 楽器名の表示(プラグインで英語などに差し替えられる)
+        self.label_func = lambda key: instruments.INSTRUMENTS[key].display
         self.canvas = tk.Canvas(self, background="#fffdf7", highlightthickness=0)
         ys = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=ys.set)
@@ -155,7 +157,7 @@ class StaffView(ttk.Frame):
         parts = list(info)
         bars = sc.bars()
         systems = [bars[i:i + BARS_PER_SYSTEM] for i in range(0, len(bars), BARS_PER_SYSTEM)]
-        label_w = self.label_font.measure("篳篥") + 16
+        label_w = max(self.label_font.measure(self.label_func(k)) for k in parts) + 16
         uniform = len({b1 - b0 for b0, b1 in bars}) == 1
         clef_w = int((5.6 if uniform else 3.8) * s)   # 音部記号(+拍子記号)の幅
         margin = 10
@@ -190,7 +192,7 @@ class StaffView(ttk.Frame):
                                     staff_top + (s if info[k]["perc"] else staff_h)))
                 d = info[k]
                 # 楽器名
-                c.create_text(label_w - 8, staff_top + staff_h / 2, text=instruments.INSTRUMENTS[k].display,
+                c.create_text(label_w - 8, staff_top + staff_h / 2, text=self.label_func(k),
                               anchor="e", fill="#8a1c1c", font=self.label_font)
                 x0, x1 = label_w + margin, x_of(s1)
                 if d["perc"]:

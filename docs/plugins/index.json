@@ -1,0 +1,30 @@
+{
+  "api": 1,
+  "plugins": [
+    {
+      "id": "english",
+      "name": "English UI",
+      "version": "1.0.0",
+      "description": {
+        "ja": "画面の説明・メニュー・楽器名を英語にし、譜字ボタンを「Ichi（一）」の形式で表示する。ボタンに触れると、読み・日本語表記・構成音を小さなポップアップで表示する。",
+        "en": "Switches menus, labels and instrument names to English and shows notation buttons as \"Ichi（一）\". Hovering a button shows its reading, Japanese spelling and pitches in a small pop-up."
+      },
+      "tags": [
+        "english",
+        "language",
+        "translation",
+        "tooltip",
+        "英語",
+        "言語",
+        "翻訳",
+        "ポップアップ"
+      ],
+      "api": 1,
+      "path": "english/",
+      "files": {
+        "plugin.json": "e316676cfc52482530a3e7fdf06173e2ecaa67fd639dc3537a2ed24fbc2d8e20",
+        "plugin.py": "45336eafe90bffb6b4f3ff70bfb8e1d88c342162ce9723360ae2cb714cf550de"
+      }
+    }
+  ]
+}

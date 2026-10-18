@@ -235,6 +235,7 @@
       <div class="card"><h3>Score view and staff notation</h3><p>Shows a full score with aligned beats and a Western staff score with the gagaku characters under the notes. The sounding notes are highlighted during playback.</p></div>
       <div class="card"><h3>Tempo changes and WAV export</h3><p>Write gagaku's gradual accelerations with <code>tempo=</code>. Export the performance as a WAV file.</p></div>
       <div class="card"><h3>Meter and ma between bars</h3><p>Change the beats per bar in the toolbar to re-bar the score and notation. Turn on "ma between bars" (小節の間) to pause at the end of each bar while the sounding notes are sustained.</p></div>
+      <div class="card"><h3>Plugins</h3><p>Search for plugins from the Plugins menu, install them, and turn them on or off at any time. The "English UI" plugin switches the app to English, shows notation buttons as <code>Ichi（一）</code> and adds pop-ups with readings and pitches.</p></div>
       <div class="card"><h3>Biwa sweeps and double stops</h3><p>Biwa sweeps start just before the beat so that the target note lands exactly on it. Write <code>一+ク</code> to strike different strings together.</p></div>
     </div>
   </section>
@@ -242,6 +243,7 @@
   <section id="updates">
     <h2>Recent updates</h2>
     <ul class="updates">
+      <li><strong>Plugins</strong> — search the online catalog, install plugins and enable or disable them from Plugins → Find and manage plugins. The first plugin, "English UI", switches the interface to English and adds pop-ups with each character's reading, Japanese spelling and pitches (available in the latest version on GitHub; coming to the pip release in the next version).</li>
       <li><strong>Ma between bars</strong> — a mode that pauses at the end of each bar and sustains the sounding notes (header <code>ma:</code>).</li>
       <li><strong>Beats per bar</strong> — changing the beats per bar in the toolbar re-bars the score text, score view and staff (header <code>beats:</code>).</li>
       <li><strong>Hold lengths</strong> — write <code>-:2</code> or <code>-:1/2</code> to hold a note for a given number of beats.</li>
@@ -337,7 +339,7 @@ python main.py examples/wakatake_sojo.gaku</pre>
       <dt>Are the sounds recordings?</dt>
       <dd>No, they are synthesized by the program. They are modeled on the real instruments, but differ from an actual performance.</dd>
       <dt>Is the app itself in English?</dt>
-      <dd>The app's interface and notation are in Japanese, because gagaku scores are written in Japanese characters. This page and the README explain how to use it in English.</dd>
+      <dd>Install the "English UI" plugin from Plugins → Find and manage plugins to switch the interface to English. The notation characters themselves stay in Japanese because gagaku scores are written that way, but each palette button shows its reading (for example Ichi（一）) and a pop-up with its pitches.</dd>
     </dl>
   </section>
 

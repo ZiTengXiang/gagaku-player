@@ -45,6 +45,7 @@ python main.py examples/demo_hyojo.gaku
 - Left, "譜面テキスト" (score text) tab: the score editor. While playing, the sounding notes are highlighted in yellow. Lines with errors turn red.
 - Left, "楽譜表示" (score view) tab: a read-only full score with the beats of all instruments aligned vertically, five bars per system, all instruments stacked. Bar lines come from `|` in the score; sustained notes are drawn as thin lines. Sounding notes are highlighted during playback; clicking a note selects it in the text (press F6 to play from there).
 - Left, "五線譜" (staff) tab: a read-only full score in Western staff notation, five bars per system, with the gagaku character under each note. One beat = a quarter note; notes crossing beats or bar lines are tied. Clefs are chosen automatically from each instrument's range (treble, bass, and treble 8va/8vb). There is no key signature; sharps are written on each note. Shō chords (合竹) are written as chords; biwa sweeps (掻撥) and koto patterns (閑掻・早掻) as arpeggiated chords. Percussion uses a one-line staff (× noteheads for kakko and shōko; tremolo for rolls 来). Highlighting and click-to-jump work as in the score view.
+- Menu bar: File (new, open, save, export WAV, quit) and Plugins (find and manage plugins).
 - Top right: a palette of notation characters per instrument. Click to insert at the cursor.
 - Bottom right: the mixer (mute and volume per part).
 - Toolbar "1小節 _ 拍" (beats per bar): changing it writes `beats:` to the header and re-bars the score text, score view and staff at that many beats (the sound does not change).
@@ -53,6 +54,52 @@ python main.py examples/demo_hyojo.gaku
   - **Off** (unchecked): plays straight through in tempo, as before.
   - The setting is saved as `ma:` in the header. The notation does not change; only the timing of playback and WAV export does.
 - Toolbar: play (F5) / play from cursor (F6) / stop (Esc) / speed % / reverb / export WAV.
+
+### Plugins
+
+Open **Plugins → Find and manage plugins…** (プラグイン → プラグインを探す・管理…) from the menu bar.
+
+- Type in the search box to filter plugins by name, description or tag (for example `english` or `英語`). The list combines the plugins bundled with the app and the online catalog on the website (`https://zitengxiang.github.io/gagaku-player/plugins/index.json`), so new plugins can appear without updating the app.
+- **Install** adds the selected plugin and enables it. Files downloaded from the online catalog are checked against the SHA-256 hashes in the catalog before they are saved.
+- **Enable / Disable** turns an installed plugin on or off at any time (double-clicking a row does the same). The change applies immediately and is remembered for the next start.
+- **Uninstall** removes it.
+- Plugins run as Python code. Install only plugins you trust.
+- Plugins and settings are stored in `~/.gagaku_player/` (`plugins/<id>/` and `settings.json`; change the location with the `GAGAKU_PLAYER_HOME` environment variable).
+
+#### English UI plugin
+
+Switches the menus, buttons, tabs, help texts, status messages and instrument names to English. Notation buttons are shown as `Ichi（一）`, and hovering a button shows a small pop-up with its reading, Japanese spelling and pitches for the current mode, for example:
+
+```
+Reading: jō
+Japanese: 丄(じょう)
+Notes: E2, B2, E3, A3 (arpeggio, landing on A3 on the beat)
+Mode: Hyōjō
+```
+
+The notation characters written in the score text stay in Japanese, because they are the score data.
+
+#### Writing a plugin
+
+A plugin is a folder with two files:
+
+```
+plugin.json   {"id": "myplugin", "name": "My plugin", "version": "1.0.0", "api": 1,
+               "description": {"ja": "…", "en": "…"}, "tags": ["…"]}
+plugin.py     class Plugin:
+                  def activate(self, api): ...
+                  def deactivate(self, api): ...   # optional
+```
+
+`activate` receives an API object with:
+
+- `api.set_texts({key: text})` — replace UI texts (keys as used by `App.t()` in `gagaku/gui.py`; see `TEXTS` in `gagaku/bundled_plugins/english/plugin.py` for the full list)
+- `api.add_palette_label(func)` — `func(instrument_key, character) -> label or None`
+- `api.add_palette_tooltip(func)` — `func(instrument_key, character, mode) -> pop-up text or None`
+- `api.add_instrument_label(func)` — `func(instrument_key) -> name or None`
+- `api.instruments` (the `gagaku.instruments` module) and `api.current_mode()`
+
+Everything a plugin registers is removed automatically when it is disabled. To publish a plugin in the in-app catalog, put it in `gagaku/bundled_plugins/<id>/` and run `python tools/build_plugin_index.py`, which copies it to `docs/plugins/` and writes `index.json` with the hashes.
 
 ### Score format (.gaku, UTF-8 text)
 
@@ -139,11 +186,14 @@ gagaku/gui.py           Tkinter GUI
 gagaku/scoreview.py     score view (five bars per system)
 gagaku/formatter.py     score text formatter (aligns beats)
 gagaku/staffview.py     staff view (with notation characters)
+gagaku/plugins.py       plugin system (load, enable, catalog, install)
+gagaku/bundled_plugins/ plugins bundled with the app (English UI)
 gagaku/assets/          icon
 examples/               sample scores (bundled in the pip package)
 tools/make_previews.py  writes preview WAVs per instrument
 tools/make_icon.py      rebuilds the icon
 tools/make_site_audio.py writes the website's preview MP3s
+tools/build_plugin_index.py builds the online plugin catalog (docs/plugins/)
 tests/                  pytest tests
 docs/                   website (GitHub Pages)
 .github/workflows/      CI (test and build) and PyPI publishing
@@ -203,6 +253,7 @@ python main.py examples/demo_hyojo.gaku
 - 左「譜面テキスト」タブ: 譜面エディタ。再生中は鳴っている譜字が黄色くハイライトされる。エラーの行は赤くなる。
 - 左「楽譜表示」タブ: 全楽器の拍の頭を縦にそろえ、1段5小節で全楽器を上下に並べた総譜(読み取り専用)。小節の区切りは譜面の `|`、延ばしは細い線で示す。再生中は鳴っている音がハイライトされ、音をクリックするとテキストの該当箇所が選択される(そのまま F6 でそこから再生)。
 - 左「五線譜」タブ: 全楽器を1段5小節の総譜として五線譜で書き、各音の下に譜字を付ける(読み取り専用)。1拍 = 4分音符で、小節や拍をまたぐ音はタイでつなぐ。音部記号は楽器の音域から自動で選ぶ(ト音記号・ヘ音記号・オクターブ上下のト音記号)。調号は使わず ♯ を音ごとに付ける。笙は合竹を和音で、琵琶の掻撥と筝の閑掻・早掻は鳴る音をアルペジオ付きの和音で書く。打楽器は1線譜(鞨鼓・鉦鼓は×の符頭、来はトレモロ)。再生ハイライトとクリックでのジャンプは楽譜表示と同じ。
+- メニューバー: ファイル(新規・開く・保存・WAV書き出し・終了)と、プラグイン(プラグインを探す・管理)。
 - 右上: 譜字パレット(楽器タブごと)。クリックするとカーソル位置に挿入。
 - 右下: ミキサー(パートごとのミュート・音量)。
 - ツールバー「1小節 _ 拍」: 1小節の拍数。変えるとヘッダに `beats:` を書き、譜面テキスト・楽譜表示・五線譜を、その拍数ごとの小節に区切り直す(音は変わらない)。
@@ -211,6 +262,52 @@ python main.py examples/demo_hyojo.gaku
   - **間なし**(チェックを外す): これまでどおりインテンポで続ける。
   - 設定はヘッダの `ma:` に保存される。楽譜の表示は変わらず、再生・WAV書き出しの時間だけが変わる。
 - ツールバー: 再生(F5) / カーソル位置から再生(F6) / 停止(Esc) / 速さ% / 残響 / WAV書き出し。
+
+### プラグイン
+
+メニューバーの **プラグイン → プラグインを探す・管理…** を開く。
+
+- 検索欄に入力すると、名前・説明・タグでプラグインを絞り込める(例 `英語`、`english`)。一覧は、アプリに同梱のものと、紹介サイトのオンライン一覧(`https://zitengxiang.github.io/gagaku-player/plugins/index.json`)を合わせたもの。アプリを更新しなくても新しいプラグインが出てくる。
+- **インストール** で、選んだプラグインを入れて有効にする。オンライン一覧から入れるときは、一覧に載っている SHA-256 とファイルを照合してから保存する。
+- **有効にする / 無効にする** で、入れたプラグインをいつでも切り替えられる(行のダブルクリックでも同じ)。すぐに反映され、次に起動したときも保たれる。
+- **アンインストール** で取り除く。
+- プラグインは Python のコードとして動く。信頼できるものだけを入れること。
+- プラグインと設定は `~/.gagaku_player/` に保存される(`plugins/<id>/` と `settings.json`。環境変数 `GAGAKU_PLAYER_HOME` で場所を変えられる)。
+
+#### English UI プラグイン
+
+メニュー・ボタン・タブ・説明文・ステータス表示・楽器名を英語にする。譜字ボタンは `Ichi（一）` の形式で表示し、ボタンにカーソルを置くと、読み・日本語表記・今の調子での構成音を小さなポップアップで表示する。
+
+```
+Reading: jō
+Japanese: 丄(じょう)
+Notes: E2, B2, E3, A3 (arpeggio, landing on A3 on the beat)
+Mode: Hyōjō
+```
+
+譜面テキストに書く譜字そのものは、譜面のデータなので日本語のまま。
+
+#### プラグインの作り方
+
+プラグインは2つのファイルを入れたフォルダ。
+
+```
+plugin.json   {"id": "myplugin", "name": "My plugin", "version": "1.0.0", "api": 1,
+               "description": {"ja": "…", "en": "…"}, "tags": ["…"]}
+plugin.py     class Plugin:
+                  def activate(self, api): ...
+                  def deactivate(self, api): ...   # 任意
+```
+
+`activate` には次の機能を持つ API が渡される。
+
+- `api.set_texts({キー: 文言})` — 画面の文言を差し替える(キーは `gagaku/gui.py` の `App.t()` に渡しているもの。一覧は `gagaku/bundled_plugins/english/plugin.py` の `TEXTS`)
+- `api.add_palette_label(func)` — `func(楽器キー, 譜字) -> 表示名 または None`
+- `api.add_palette_tooltip(func)` — `func(楽器キー, 譜字, 調子) -> ポップアップの文 または None`
+- `api.add_instrument_label(func)` — `func(楽器キー) -> 楽器名 または None`
+- `api.instruments`(`gagaku.instruments` モジュール)と `api.current_mode()`
+
+プラグインが登録したものは、無効にすると自動で取り除かれる。アプリ内の一覧に載せるには、`gagaku/bundled_plugins/<id>/` に置いて `python tools/build_plugin_index.py` を実行する(`docs/plugins/` に写してハッシュ入りの `index.json` を作る)。
 
 ### 譜面の書式(.gaku, UTF-8テキスト)
 
@@ -297,11 +394,14 @@ gagaku/gui.py           Tkinter GUI
 gagaku/scoreview.py     楽譜表示(1段5小節の総譜)
 gagaku/formatter.py     譜面テキストの整形(拍頭を縦にそろえる)
 gagaku/staffview.py     五線譜表示(字譜つき)
+gagaku/plugins.py       プラグインの仕組み(読み込み・有効化・一覧・インストール)
+gagaku/bundled_plugins/ 同梱プラグイン(English UI)
 gagaku/assets/          アイコン
 examples/               サンプル譜(pip 版ではパッケージ内に同梱)
 tools/make_previews.py  楽器ごとの試聴用WAVを書き出す
 tools/make_icon.py      アイコンを作り直す
 tools/make_site_audio.py 紹介サイトの試聴用MP3を書き出す
+tools/build_plugin_index.py オンラインのプラグイン一覧(docs/plugins/)を作る
 tests/                  pytest のテスト
 docs/                   紹介サイト(GitHub Pages)
 .github/workflows/      CI(テスト・ビルド)と PyPI への公開
