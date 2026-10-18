@@ -82,15 +82,27 @@ def test_repeated_notes_have_clear_break():
         assert _min_level_near(phrase(moving), 1.0, synth.SR) > 0.3    # 違う音へはつないで動く
 
 
-@pytest.mark.parametrize("beat_sec, beats", [(1.0, 2), (1.0, 4), (0.5, 2)])
-def test_biwa_sweep_divides_the_note_length(beat_sec, beats):
+@pytest.mark.parametrize("beat_sec", [1.0, 0.5])
+def test_biwa_sweep_lands_on_the_beat(beat_sec):
     from gagaku import instruments as I
-    dur = beats * beat_sec
-    # 4本: 6等分の 1・3・4・5 番目、3本: 4等分の 1・2・3 番目(次の音までの長さに対して)
-    assert I.Biwa.sweep_times(4, dur, beat_sec) == pytest.approx([0, dur * 2 / 6, dur * 3 / 6, dur * 4 / 6])
-    assert I.Biwa.sweep_times(3, dur, beat_sec) == pytest.approx([0, dur / 4, dur * 2 / 4])
-    # 2本は拍の前半を等分(音の長さによらない)
-    assert I.Biwa.sweep_times(2, dur, beat_sec) == pytest.approx([0, beat_sec / 4])
+    span = I.BIWA_PICKUP_BEATS * beat_sec
+    # 着地型: 直前の時間を弦の数で等分し、最後の弦(目的の音)が拍頭ちょうど(0)に来る
+    for n in (2, 3, 4):
+        t = I.Biwa.sweep_times(n, beat_sec)
+        assert t[-1] == 0
+        assert t == pytest.approx([-span * (n - 1 - k) / n for k in range(n)])
+    # 曲の頭などで前に時間がないときは縮める
+    assert I.Biwa.sweep_times(4, beat_sec, max_pre=0.0) == pytest.approx([0, 0, 0, 0])
+
+
+def test_biwa_sweep_is_placed_before_the_onset():
+    sc = score.parse("tempo: 60\n[琵琶] . . 丄 - |\n")
+    from gagaku import instruments as I
+    for ev in sc.events:
+        ev.start_sec, ev.end_sec, ev.beat_sec = float(ev.beat), float(ev.beat + ev.dur), 1.0
+    (start, _), = I.INSTRUMENTS["biwa"].render_part(sc.events, sc.mode)
+    assert start == pytest.approx(2.0 - 0.75 * I.BIWA_PICKUP_BEATS)   # 4本: 0.75拍前から弾き始める
+    render.render(sc, reverb=0)   # 曲全体のレンダリングでも問題なく置ける
 
 
 def test_kakko_roll_is_slower_and_follows_tempo():

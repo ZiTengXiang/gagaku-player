@@ -290,13 +290,10 @@ BIWA_GRID = [  # [弦][柱]  柱0 = 開放
     ["丄", "八", "丨", "ム", "也"],
 ]
 BIWA_POS = {s: (i, j) for i, row in enumerate(BIWA_GRID) for j, s in enumerate(row)}
-# 掻撥のリズム: 弦の本数 → 各弦を鳴らす位置。
-# 位置は「その音の長さ(次の音か休み . までの時間)」に対する割合。
-# ここにない本数(2本)は、拍の前半を弦の数で等分する。
-BIWA_SWEEP_RHYTHM = {
-    4: [0, 2 / 6, 3 / 6, 4 / 6],   # 6等分した 1・3・4・5 番目
-    3: [0, 1 / 4, 2 / 4],          # 4等分した 1・2・3 番目
-}
+# 掻撥は「着地型」: 最後の弦(目的の音)を、譜面に書いた位置の拍頭ちょうどに鳴らし、
+# それより前の弦は、その直前の時間(BIWA_PICKUP_BEATS 拍)を弦の数で等分して先に弾く。
+# 例: 4本・1拍なら 0.75・0.5・0.25 拍前と拍頭ちょうど。
+BIWA_PICKUP_BEATS = 1.0
 
 
 class Biwa(Instrument):
@@ -345,12 +342,14 @@ class Biwa(Instrument):
         return _TUNINGS["biwa"][mode][s][f]
 
     @staticmethod
-    def sweep_times(n_strings: int, dur: float, beat_sec: float) -> list[float]:
-        """掻撥で各弦を鳴らす時刻(音の頭からの秒)。"""
-        if n_strings in BIWA_SWEEP_RHYTHM:
-            return [dur * p for p in BIWA_SWEEP_RHYTHM[n_strings]]
-        span = min(beat_sec, dur)
-        return [span * 0.5 * i / n_strings for i in range(n_strings)]
+    def sweep_times(n_strings: int, beat_sec: float, max_pre: float = float("inf")) -> list[float]:
+        """掻撥で各弦を鳴らす時刻(音の頭=拍頭からの秒。0 以下)。
+
+        直前の BIWA_PICKUP_BEATS 拍を弦の数で等分し、最後の弦がちょうど 0(拍頭)に来る。
+        曲の頭など、前に時間がないときは max_pre 秒に縮める。
+        """
+        span = min(BIWA_PICKUP_BEATS * beat_sec, max_pre)
+        return [-span * (n_strings - 1 - k) / n_strings for k in range(n_strings)]
 
     def staff_pitches(self, sym, octave, mode):
         if "+" in sym:   # 同時に鳴らす和音(アルペジオなし)
@@ -364,6 +363,20 @@ class Biwa(Instrument):
         return [shift_note(n, octave) for n in notes], len(notes) > 1
 
     def render(self, sym, octave, dur, mode, beat_sec=1.0):
+        """1音ぶんの波形(掻撥なら最初の弦から始まる)。"""
+        return self._render_note(sym, octave, dur, mode, beat_sec)[1]
+
+    def render_part(self, events, mode):
+        """掻撥は拍の前から弾き始めるので、音の頭より前に置けるようパート単位で配置する。"""
+        items = []
+        for ev in events:
+            offset, w = self._render_note(ev.symbol, ev.octave, ev.end_sec - ev.start_sec, mode,
+                                          ev.beat_sec, max_pre=ev.start_sec)
+            items.append((ev.start_sec + offset, w))
+        return items
+
+    def _render_note(self, sym, octave, dur, mode, beat_sec=1.0, max_pre=float("inf")):
+        """(音の頭から見た波形の開始秒(0 以下), 波形) を返す。"""
         ring = max(round(dur * 2) / 2, 3.0)  # 0.5秒刻みに丸めて同じ音をキャッシュで使い回す
         tone = lambda note, strike=1.0: synth.biwa_note(hz(note, octave), ring, strike)
         if "+" in sym:
@@ -371,18 +384,17 @@ class Biwa(Instrument):
             parts = sym.split("+")
             out = sum(tone(self._note(*BIWA_POS[p], mode), 1.0 if i == 0 else 0.2)
                       for i, p in enumerate(parts))
-            return out * (0.6 / len(parts) ** 0.5)
+            return 0.0, out * (0.6 / len(parts) ** 0.5)
         single = sym.startswith("単")
         base = sym[1:] if single else sym
         s, f = BIWA_POS[base]
         if single:
-            return tone(self._note(s, f, mode)) * 0.6
-        # 掻撥: 低い弦(開放)から目的の弦まで撥で掻き下ろす(第3・4弦なら3〜4本)。
-        # 第1・2弦が目的のときは割撥風に隣の弦と2本で弾く。
-        # 3・4本は、その音の長さを BIWA_SWEEP_RHYTHM の割合で分けた位置で鳴らす。
-        # 2本は拍の前半を等分する(音符が1拍より短いときは、その長さを1拍とみなす)。
+            return 0.0, tone(self._note(s, f, mode)) * 0.6
+        # 掻撥: 低い弦(開放)から目的の弦まで撥で掻き上げる(第1弦が目的なら1本だけ)。
+        # 着地型: 最後の弦が拍頭ちょうど、それより前の弦は拍の直前を等分した位置。
         order = list(range(0, s + 1)) if s >= 1 else [0]
-        starts = [synth._n(t) if t > 0 else 0 for t in self.sweep_times(len(order), dur, beat_sec)]
+        times = self.sweep_times(len(order), beat_sec, max_pre)
+        starts = [synth._n(t - times[0]) if t > times[0] else 0 for t in times]
         total = starts[-1] + synth._n(ring)
         out = np.zeros(total)
         for i, st in enumerate(order):
@@ -390,7 +402,7 @@ class Biwa(Instrument):
             # 撥が撥面を打つ音は最初の一掻きで強く、以降は弦を払う程度
             w = tone(note, 1.0 if i == 0 else 0.25) * (1.0 if st == s else 0.55)
             out[starts[i] : starts[i] + len(w)] += w
-        return out * 0.55
+        return times[0], out * 0.55
 
 
 # ------------------------------------------------------------------ 楽箏
