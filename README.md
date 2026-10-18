@@ -164,7 +164,7 @@ When you open, save, play or export, or press the "縦にそろえる" (align) b
 | Instrument | Characters |
 |---|---|
 | Shō (笙) | Chords (合竹): 乞 一 工 凢 乙 下 十 美 行 比; special chords 乙美 乙言 凢美 凢言. Prefix 単 (as in `単千`) for a single pipe. In 双調, 十 is the five-note 十. |
-| Hichiriki (篳篥) | 舌 五 工 凢 六 四 一 丄 丁 (low to high, G4–A5, standard pitches from Japanese Wikipedia "篳篥"). ム is not used in current pieces. Each note starts with an 塩梅 pitch bend. In 平調, 舌 is lowered from G4 to F#4, 丄 from G5 to F#5 and 凢 from C5 to B4 (メリ凢). 舌, 丄, 凢 and 四 also dip at the start of the note before rising, and 六 sinks where it meets 工 or 五. Other modes have no メリ set; override per character in `tunings.json` under `hichiriki`. |
+| Hichiriki (篳篥) | 舌 五 工 凢 六 四 一 丄 丁 (low to high, G4–A5, standard pitches from Japanese Wikipedia "篳篥"). ム is not used in current pieces. Each note starts with an 塩梅 pitch bend. In 平調, 舌 is lowered from G4 to F#4 and 丄 from G5 to F#5 (メリ), and 凢 is fitted to the mode's C#5 instead of C5 (メリ凢). 舌, 丄, 凢 and 四 also dip at the start of the note before rising, and 六 sinks where it meets 工 or 五. Other modes have no メリ set; override per character in `tunings.json` under `hichiriki`. |
 | Ryūteki (竜笛) | 五 丄 夕 中 丅 六 干 (〒) in the low register (和). `責六` or `六'` for the high register (責). 干 sounds above 六 (E6); the low 干 (E5) is `干,`. |
 | Gakubiwa (琵琶) | String 1: 一 工 凢 フ 斗 / string 2: 乚 下 十 乙 コ / string 3: ク 七 ヒ 〻 之 / string 4: 丄 八 丨 ム 也 (open, frets 1–4). Normally a sweep (掻撥); `単ク` for a single note. Join with `+`, as in `一+ク`, to strike different strings together (割撥; the same string twice is an error). The sweep "lands" on the beat: the last string (the target note) sounds exactly on the written beat, and the earlier strings are played ahead of it, dividing the preceding beat equally by the number of strings (with 4 strings: 0.75, 0.5 and 0.25 beats early, then on the beat). Change the length with `BIWA_PICKUP_BEATS` in `instruments.py`. |
 | Gakusō (筝) | 一–十 斗 為 巾 (single notes); `閑三` = 閑掻, `早三` = 早掻. |
@@ -385,7 +385,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
 | 楽器 | 譜字 |
 |---|---|
 | 笙 | 合竹: 乞 一 工 凢 乙 下 十 美 行 比、特殊合竹 乙美 乙言 凢美 凢言。`単千` のように「単」を付けると一本だけ。双調では「十」が5音の十になる。 |
-| 篳篥 | 舌 五 工 凢 六 四 一 丄 丁(低い順, G4〜A5、Wikipedia「篳篥」の正律)。ムは現行曲では使わない。音頭に塩梅を付ける。平調では、舌を正律の G4 から F#4(下無)に、丄を G5 から F#5 に、凢を C5 から B4 に下げて吹く(メリ、メリ凢)。さらに舌・丄・凢・四は音頭で口元を緩めていったん沈めてから立ち上げ、六は工・五へ渡るとき(工・五から来るときも)なめらかに沈み込む。ほかの調子のメリは未設定で、`tunings.json` の `hichiriki` で譜字ごとに上書きできる。 |
+| 篳篥 | 舌 五 工 凢 六 四 一 丄 丁(低い順, G4〜A5、Wikipedia「篳篥」の正律)。ムは現行曲では使わない。音頭に塩梅を付ける。平調では、舌を正律の G4 から F#4(下無)に、丄を G5 から F#5 に下げて吹き(メリ)、凢は C5 ではなく平調の音階の C#5(上無)に合わせる(メリ凢)。さらに舌・丄・凢・四は音頭で口元を緩めていったん沈めてから立ち上げ、六は工・五へ渡るとき(工・五から来るときも)なめらかに沈み込む。ほかの調子のメリは未設定で、`tunings.json` の `hichiriki` で譜字ごとに上書きできる。 |
 | 竜笛 | 五 丄 夕 中 丅 六 干(〒)(和)。`責六` または `六'` で責。干は六の上(E6)で鳴る。低い干(E5)は `干,`。 |
 | 琵琶 | 1弦 一 工 凢 フ 斗 / 2弦 乚 下 十 乙 コ / 3弦 ク 七 ヒ 〻 之 / 4弦 丄 八 丨 ム 也(開放, 第1〜4柱)。通常は掻撥、`単ク` で単音。`一+ク` のように `+` でつなぐと、別々の弦を同時に鳴らす(割撥。同じ弦どうしはエラー)。掻撥は「着地型」で、最後の弦(目的の音)を譜面の位置の拍頭ちょうどに鳴らし、それより前の弦は直前の1拍を弦の数で等分して先に弾く(4本なら 0.75・0.5・0.25 拍前と拍頭。`instruments.py` の `BIWA_PICKUP_BEATS` で長さを変更可)。 |
 | 筝 | 一〜十 斗 為 巾(単音)、`閑三` = 閑掻、`早三` = 早掻。 |

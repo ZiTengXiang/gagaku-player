@@ -42,7 +42,7 @@ def test_hichiriki_meri_in_hyojo():
     assert h._pitch("舌", 0, "平調") == pytest.approx(I.hz("F#4"))
     assert h._pitch("丄", 0, "平調") == pytest.approx(I.hz("F#5"))
     assert h._pitch("舌", 0, "双調") == pytest.approx(I.hz("G4"))
-    assert h._pitch("凢", 0, "平調") == pytest.approx(I.hz("B4"))     # メリ凢
+    assert h._pitch("凢", 0, "平調") == pytest.approx(I.hz("C#5"))     # メリ凢
     assert h._pitch("凢", 0, "双調") == pytest.approx(I.hz("C5"))
 
 
