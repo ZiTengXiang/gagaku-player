@@ -282,6 +282,7 @@ def string_tone(
     inharm: float = 0.0002,
     pitch_drop: float = 15.0,
     drop_time: float = 0.06,
+    tail: float = 2.5,
 ) -> np.ndarray:
     """モード合成による弦の音。高次倍音ほど早く減衰し、撥/爪で強く弾いた直後は音高がわずかに高い。"""
     n = _n(length)
@@ -298,11 +299,11 @@ def string_tone(
             continue
         tau = decay / (1 + hf_damp * (k - 1) ** 1.3)
         ph = _rng.uniform(0, 2 * np.pi)
-        m_k = min(n, _n(tau * 2.5 * 7))  # 聞こえなくなるまでの区間だけ計算する
+        m_k = min(n, _n(tau * tail * 7))  # 聞こえなくなるまでの区間だけ計算する
         tk, ck = t[:m_k], cum[:m_k]
         # 2つの偏波(わずかに周波数が違う) → 自然なゆらぎと二段減衰
         out[:m_k] += a * (0.7 * np.exp(-tk / tau) * np.sin(2 * np.pi * fk * ck + ph)
-                          + 0.3 * np.exp(-tk / (tau * 2.5)) * np.sin(2 * np.pi * fk * 1.0006 * ck + ph))
+                          + 0.3 * np.exp(-tk / (tau * tail)) * np.sin(2 * np.pi * fk * 1.0006 * ck + ph))
     out *= env_asr(n, 0.0015, 0.06)
     p = np.max(np.abs(out))
     return out / p if p > 0 else out
@@ -315,15 +316,23 @@ KOTO_BODY = [(150, 3.0, 0.9), (320, 4.0, 0.8), (640, 5.0, 0.5), (1250, 4.0, 0.25
 @lru_cache(maxsize=256)
 def biwa_note(freq: float, length: float, strike: float = 1.0) -> np.ndarray:
     """楽琵琶: 太い絹弦を大きな撥で弾く。撥が撥面を打つ音と胴鳴りが混じる。"""
-    s = string_tone(freq, length, decay=1.7, hf_damp=0.22, brightness=0.42, pos=0.09,
-                    inharm=0.0003, pitch_drop=22, drop_time=0.05)
+    # 絹弦は余韻が短めに切れる(高次倍音ほど早く消え、撥の当たりが際立つ)
+    s = string_tone(freq, length, decay=0.55, hf_damp=0.32, brightness=0.48, pos=0.09,
+                    inharm=0.0003, pitch_drop=22, drop_time=0.05, tail=1.5)
     # さわり風のわずかなビリつき(楽琵琶は薩摩琵琶ほど強くない)
     s = np.tanh(s * 1.6) / np.tanh(1.6)
     n = len(s)
+    # 撥が撥面を打つ音(最初の一掻きで強い)
     m = min(n, _n(0.05))
     hit = np.zeros(n)
-    hit[:m] = (lowpass_noise(m, 700) * 0.9 + bandpass_noise(m, 2500, 1200) * 0.25) * np.exp(-np.arange(m) / (SR * 0.012))
-    out = s + hit * 0.55 * strike
+    hit[:m] = (lowpass_noise(m, 700) * 0.9 + bandpass_noise(m, 2500, 1200) * 0.3) * np.exp(-np.arange(m) / (SR * 0.012))
+    # 撥(指)が弦をはじく音: 鋭い当たりと、弦をこする短い「ザッ」。掻撥の2本目以降の弦にも入る
+    k = min(n, _n(0.035))
+    tk = np.arange(k) / SR
+    pluck = np.zeros(n)
+    pluck[:k] = (bandpass_noise(k, 3400, 1600) * np.exp(-tk / 0.003)
+                 + bandpass_noise(k, 1500, 700) * 0.45 * np.exp(-tk / 0.009))
+    out = s + hit * 0.8 * strike + pluck * (0.9 + 0.4 * strike)
     out = resonate(out, BIWA_BODY, dry=0.8)
     return _frozen(out / (np.max(np.abs(out)) + 1e-9))
 
