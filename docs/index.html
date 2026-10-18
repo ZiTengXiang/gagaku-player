@@ -15,12 +15,16 @@
 <title>雅楽譜プレイヤー|雅楽の打ち込み・DTM ができる無料アプリ(笙・篳篥・竜笛・琵琶・筝)</title>
 <meta name="description" content="雅楽の譜字をテキストで打ち込むと、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する、無料・オープンソースの雅楽ソフトウェア。DAW や音源なしで雅楽の打ち込み(DTM)ができ、五線譜表示や WAV 書き出しにも対応。Windows・macOS・Linux 用デスクトップアプリ。">
 <link rel="canonical" href="https://zitengxiang.github.io/gagaku-player/">
+<link rel="alternate" hreflang="ja" href="https://zitengxiang.github.io/gagaku-player/">
+<link rel="alternate" hreflang="en" href="https://zitengxiang.github.io/gagaku-player/en/">
+<link rel="alternate" hreflang="x-default" href="https://zitengxiang.github.io/gagaku-player/en/">
 <meta property="og:title" content="雅楽譜プレイヤー|雅楽の打ち込み・DTM ができる無料アプリ">
 <meta property="og:description" content="雅楽の譜字を書くと、笙・篳篥・竜笛など八つの楽器が合奏する。無料・オープンソースの雅楽ソフトウェア。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://zitengxiang.github.io/gagaku-player/">
 <meta property="og:site_name" content="雅楽譜プレイヤー">
 <meta property="og:locale" content="ja_JP">
+<meta property="og:locale:alternate" content="en_US">
 <meta property="og:image" content="https://zitengxiang.github.io/gagaku-player/images/score.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="images/icon.png">
@@ -144,6 +148,8 @@
   ul.updates li { margin-bottom: 8px; }
   ul.updates strong { color: var(--accent); }
   .small-note { color: var(--muted); font-size: .9rem; }
+  .lang { margin: -40px 0 24px; font-size: .9rem; color: var(--muted); }
+  @media (max-width: 600px) { .lang { margin-top: -24px; word-break: break-all; } }
   footer { padding: 30px 0 50px; color: var(--muted); font-size: .9rem; }
   @media (max-width: 600px) {
     header.hero { padding: 40px 0 28px; }
@@ -156,6 +162,7 @@
 
 <header class="hero">
   <div class="wrap">
+    <p class="lang">English version: <a href="https://zitengxiang.github.io/gagaku-player/en/" hreflang="en" lang="en">https://zitengxiang.github.io/gagaku-player/en/</a></p>
     <div class="hero-inner">
       <img class="icon" src="images/icon.png" alt="雅楽譜プレイヤーのアイコン">
       <div>

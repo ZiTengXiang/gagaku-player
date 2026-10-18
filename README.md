@@ -1,13 +1,178 @@
-# 雅楽譜プレイヤー
+# Gagaku Score Player (雅楽譜プレイヤー)
 
 [![CI](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiTengXiang/gagaku-player/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/gagaku-player)](https://pypi.org/project/gagaku-player/)
 
+**[English](#english)** | **[日本語](#japanese)**
+
+<a id="english"></a>
+
+## English
+
+A free desktop app for programming (DTM) gagaku, Japanese imperial court music. Type gagaku notation characters (譜字) as plain text and the app plays them as an ensemble of shō, hichiriki, ryūteki, gakubiwa, gakusō, kakko, shōko and taiko (Windows, macOS and Linux; written in Python). No DAW or sample library is needed. It also shows a Western staff view and exports WAV files.
+
+Website (English): https://zitengxiang.github.io/gagaku-player/en/
+Website (Japanese): https://zitengxiang.github.io/gagaku-player/
+
+### Install and run
+
+With pip:
+
+```bash
+pip install gagaku-player
+gagaku-player --demo          # open the sample piece "Wakatake"
+gagaku-player piece.gaku      # open a score
+```
+
+From source:
+
+```bash
+git clone https://github.com/ZiTengXiang/gagaku-player.git
+cd gagaku-player
+pip install -r requirements.txt
+python main.py examples/demo_hyojo.gaku
+```
+
+- Requirements: Python 3.10+ and numpy (tkinter ships with Python). You can also start it with `python -m gagaku`.
+- On Windows nothing else is needed (playback uses the built-in `winsound`). On macOS/Linux, installing with pip also installs `sounddevice` for playback (from source, run `pip install sounddevice`).
+- To launch from an icon on Windows, make a shortcut that runs `pythonw.exe main.py` and set its icon to `gagaku/assets/gagaku.ico` (`pythonw` opens no console window). Rebuild the icon with `python tools/make_icon.py` (needs Pillow and the Yu Mincho font).
+- If the app crashes when started without a console, it writes the details to `error.log` and shows a dialog.
+
+### Screen
+
+- Left, "譜面テキスト" (score text) tab: the score editor. While playing, the sounding notes are highlighted in yellow. Lines with errors turn red.
+- Left, "楽譜表示" (score view) tab: a read-only full score with the beats of all instruments aligned vertically, five bars per system, all instruments stacked. Bar lines come from `|` in the score; sustained notes are drawn as thin lines. Sounding notes are highlighted during playback; clicking a note selects it in the text (press F6 to play from there).
+- Left, "五線譜" (staff) tab: a read-only full score in Western staff notation, five bars per system, with the gagaku character under each note. One beat = a quarter note; notes crossing beats or bar lines are tied. Clefs are chosen automatically from each instrument's range (treble, bass, and treble 8va/8vb). There is no key signature; sharps are written on each note. Shō chords (合竹) are written as chords; biwa sweeps (掻撥) and koto patterns (閑掻・早掻) as arpeggiated chords. Percussion uses a one-line staff (× noteheads for kakko and shōko; tremolo for rolls 来). Highlighting and click-to-jump work as in the score view.
+- Top right: a palette of notation characters per instrument. Click to insert at the cursor.
+- Bottom right: the mixer (mute and volume per part).
+- Toolbar "1小節 _ 拍" (beats per bar): changing it writes `beats:` to the header and re-bars the score text, score view and staff at that many beats (the sound does not change).
+- Toolbar "小節の間(ま) _ 拍" (ma between bars): turns the pause between bars on or off and sets its length.
+  - **On**: a pause of the given number of beats is inserted at the end of each bar (except the last). During it, every note sounding at the end of the bar (held notes and notes crossing the bar line) is sustained. Parts resting at the end of the bar stay silent.
+  - **Off** (unchecked): plays straight through in tempo, as before.
+  - The setting is saved as `ma:` in the header. The notation does not change; only the timing of playback and WAV export does.
+- Toolbar: play (F5) / play from cursor (F6) / stop (Esc) / speed % / reverb / export WAV.
+
+### Score format (.gaku, UTF-8 text)
+
+```
+title: Piece title
+mode: 平調          # 壱越調 平調 双調 黄鐘調 盤渉調 太食調
+tempo: 60           # BPM per beat
+beats: 4            # beats per bar (if omitted, bars follow | in the score)
+ma: 1               # length of the pause between bars, in beats; omit or 0 for none
+
+[笙]
+乙 - - - | 一 - 工 - |
+[竜笛]
+干 - 五 丄 | 責干:2 中 夕 |
+```
+
+| Token | Meaning |
+|---|---|
+| `譜字` (a character) | one beat |
+| `譜字:2` / `譜字:1/2` | length in beats |
+| `-` `ー` | hold the previous note one more beat |
+| `-:2` / `-:1/2` | hold the previous note the given number of beats |
+| `.` `・` `〇` `休` (also `.:2`) | rest |
+| `\|` | bar line (visual only) |
+| `tempo=72` | change tempo from this point (applies to all parts) |
+| `譜字'` / `譜字,` | one octave up / down |
+| `# …` | comment |
+
+A part may be split over several `[instrument]` blocks (they continue one after another). Notes can also follow the instrument name on the same line, as in `[笙] 乙 - 下 |`. If the parts have different lengths, a warning appears in the status bar.
+
+#### Aligning vertically (auto-format)
+
+When you open, save, play or export, or press the "縦にそろえる" (align) button (Ctrl+Shift+F), the score text is formatted like this:
+
+```
+# ---- 1〜5小節
+[笙]    十    -   凢   -   |  乞  -  一  -  |  ...
+[篳篥]  丄    四  六   工  |  五  -  工  六 |  ...
+[竜笛]  責丄  干  六   中  |  夕  -  中  六 |  ...
+```
+
+- Five bars per system. In each system the lines of all instruments are stacked and the beats line up vertically (in a monospaced font). Bars are separated by `|`.
+- Two spaces between beats, one space between notes within a beat (half beats and so on). `乙:2` is rewritten as `乙 -`.
+- Formatting never changes the music (start beat, length and tempo changes stay the same). Comments written inside the score body are moved together after the header.
+- It does not run while you type; if the columns drift after editing, press Ctrl+Shift+F.
+
+#### Notation per instrument
+
+| Instrument | Characters |
+|---|---|
+| Shō (笙) | Chords (合竹): 乞 一 工 凢 乙 下 十 美 行 比; special chords 乙美 乙言 凢美 凢言. Prefix 単 (as in `単千`) for a single pipe. In 双調, 十 is the five-note 十. |
+| Hichiriki (篳篥) | 舌 五 工 凢 六 四 一 丄 丁 (low to high, G4–A5, standard pitches from Japanese Wikipedia "篳篥"). ム is not used in current pieces. Each note starts with an 塩梅 pitch bend. In 平調, 舌 is lowered from G4 to F#4 and 丄 from G5 to F#5 (メリ). Other modes have no メリ set; override per character in `tunings.json` under `hichiriki`. |
+| Ryūteki (竜笛) | 五 丄 夕 中 丅 六 干 (〒) in the low register (和). `責六` or `六'` for the high register (責). 干 sounds above 六 (E6); the low 干 (E5) is `干,`. |
+| Gakubiwa (琵琶) | String 1: 一 工 凢 フ 斗 / string 2: 乚 下 十 乙 コ / string 3: ク 七 ヒ 〻 之 / string 4: 丄 八 丨 ム 也 (open, frets 1–4). Normally a sweep (掻撥); `単ク` for a single note. Join with `+`, as in `一+ク`, to strike different strings together (割撥; the same string twice is an error). The sweep "lands" on the beat: the last string (the target note) sounds exactly on the written beat, and the earlier strings are played ahead of it, dividing the preceding beat equally by the number of strings (with 4 strings: 0.75, 0.5 and 0.25 beats early, then on the beat). Change the length with `BIWA_PICKUP_BEATS` in `instruments.py`. |
+| Gakusō (筝) | 一–十 斗 為 巾 (single notes); `閑三` = 閑掻, `早三` = 早掻. |
+| Kakko (鞨鼓) | 正 (single right stroke), 片来 (roll with the left stick only), 諸来 (roll with both sticks). Give the roll a length, as in `諸来:3`. Rolls start slowly and speed up; the speed follows the tempo (adjust with `KAKKO_ROLL_SPEED` in `instruments.py`). |
+| Shōko (鉦鼓) | 金・生 (one stroke), ク (left), レイ (right), クレイ (left then right). |
+| Taiko (太鼓) | 図 (light lead-in stroke), 百 (strong stroke). |
+
+### Pitch and tuning
+
+- Reference pitch A4 = 430 Hz (`a4_hz` in `gagaku/tunings.json`), in equal temperament.
+- The pitches of the shō pipes and the makeup of its chords, and the pitches of the ryūteki characters, follow the tables in Japanese Wikipedia ("笙", "龍笛").
+- **No source was found for the gakubiwa and gakusō tunings in each mode.** They are therefore **provisional**, built from the tonic and scale of each mode. Edit `gagaku/tunings.json` to use accurate tunings (biwa: [open, frets 1–4] per string; koto: the 13 strings 一–巾).
+- The 閑掻, 早掻, 掻撥 and 来 techniques are simplified approximations.
+- All sounds are synthesized with numpy; no samples are used.
+  - Shō: pipes shared between consecutive chords keep sounding, and only the changing pipes enter and leave slightly staggered (手移り). Each chord swells with the breath.
+  - Hichiriki and ryūteki: notes up to a rest are synthesized as one phrase and joined with 塩梅 (the hichiriki dips before rising to a higher note). Repeated notes are re-articulated with a short break.
+  - Biwa and koto: strings with partials that decay at different rates, plus the sound of the plectrum or picks and the body resonance.
+  - Kakko, taiko and shōko: inharmonic membrane and metal modes.
+- Write preview WAVs per instrument to `previews/` with `python tools/make_previews.py`.
+
+### Layout
+
+```
+main.py                 entry point
+gagaku/score.py         score parser
+gagaku/instruments.py   notation → pitch/technique, instrument sounds
+gagaku/tunings.json     biwa and koto tunings (editable)
+gagaku/synth.py         synthesis and reverb
+gagaku/render.py        mixing and WAV export
+gagaku/audio.py         playback
+gagaku/gui.py           Tkinter GUI
+gagaku/scoreview.py     score view (five bars per system)
+gagaku/formatter.py     score text formatter (aligns beats)
+gagaku/staffview.py     staff view (with notation characters)
+gagaku/assets/          icon
+examples/               sample scores (bundled in the pip package)
+tools/make_previews.py  writes preview WAVs per instrument
+tools/make_icon.py      rebuilds the icon
+tools/make_site_audio.py writes the website's preview MP3s
+tests/                  pytest tests
+docs/                   website (GitHub Pages)
+.github/workflows/      CI (test and build) and PyPI publishing
+```
+
+### Development
+
+```bash
+pip install -e . pytest
+python -m pytest
+```
+
+- On every push and pull request, GitHub Actions runs the tests on Windows and Ubuntu with Python 3.10–3.13 and builds the package (`.github/workflows/ci.yml`).
+- To publish to PyPI, bump `__version__` in `gagaku/__init__.py`, then create a GitHub release with the matching tag (for example `v0.2.2`); publishing runs automatically (`.github/workflows/publish.yml`, Trusted Publishing).
+
+### License
+
+[MIT License](LICENSE)
+
+---
+
+<a id="japanese"></a>
+
+## 日本語
+
 雅楽の打ち込み・DTM ができる無料のデスクトップアプリ。雅楽の譜字をテキストで入力すると、笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓の合奏として再生する(Windows・macOS・Linux、Python 製)。DAW や音源ソフトは不要で、五線譜表示や WAV 書き出しにも対応する。
 
-紹介サイト: https://zitengxiang.github.io/gagaku-player/
+紹介サイト(日本語): https://zitengxiang.github.io/gagaku-player/
+紹介サイト(英語): https://zitengxiang.github.io/gagaku-player/en/
 
-## インストールと起動
+### インストールと起動
 
 pip で入れる場合:
 
@@ -31,7 +196,7 @@ python main.py examples/demo_hyojo.gaku
 - Windows でアイコンから起動したい場合は、`pythonw.exe main.py` を実行するショートカットを作り、アイコンに `gagaku/assets/gagaku.ico` を指定する(`pythonw` ならコンソール画面が出ない)。アイコンは `python tools/make_icon.py` で作り直せる(Pillow と游明朝フォントが必要)。
 - コンソールなしで起動して落ちた場合は、`error.log` に詳細を書き出してダイアログを出す。
 
-## 画面
+### 画面
 
 - 左「譜面テキスト」タブ: 譜面エディタ。再生中は鳴っている譜字が黄色くハイライトされる。エラーの行は赤くなる。
 - 左「楽譜表示」タブ: 全楽器の拍の頭を縦にそろえ、1段5小節で全楽器を上下に並べた総譜(読み取り専用)。小節の区切りは譜面の `|`、延ばしは細い線で示す。再生中は鳴っている音がハイライトされ、音をクリックするとテキストの該当箇所が選択される(そのまま F6 でそこから再生)。
@@ -45,7 +210,7 @@ python main.py examples/demo_hyojo.gaku
   - 設定はヘッダの `ma:` に保存される。楽譜の表示は変わらず、再生・WAV書き出しの時間だけが変わる。
 - ツールバー: 再生(F5) / カーソル位置から再生(F6) / 停止(Esc) / 速さ% / 残響 / WAV書き出し。
 
-## 譜面の書式(.gaku, UTF-8テキスト)
+### 譜面の書式(.gaku, UTF-8テキスト)
 
 ```
 title: 曲名
@@ -74,7 +239,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
 
 1つのパートを複数の `[楽器]` 段に分けて書いてもよい(後ろへ続く)。`[笙] 乙 - 下 |` のように楽器名と同じ行に音を続けて書くこともできる。パートの長さが揃わないとステータスバーに警告が出る。
 
-### 縦にそろえる(自動整形)
+#### 縦にそろえる(自動整形)
 
 ファイルを開いたとき・保存したとき・再生/WAV書き出しのとき、または「縦にそろえる」ボタン(Ctrl+Shift+F)で、譜面テキストを次の形に整形する。
 
@@ -90,7 +255,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
 - 整形しても音は変わらない(各音の開始拍・長さ・テンポ変化は同じ)。本文の途中に書いたコメントはヘッダの後ろへまとめて移る。
 - 入力中は自動では動かないので、書き足した後に縦がずれたら Ctrl+Shift+F で直せる。
 
-### 楽器ごとの譜字
+#### 楽器ごとの譜字
 
 | 楽器 | 譜字 |
 |---|---|
@@ -103,7 +268,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
 | 鉦鼓 | 金・生(一打)、ク(左)、レイ(右)、クレイ(左右2打)。 |
 | 太鼓 | 図(軽い前打)、百(強打)。 |
 
-## 音高・調弦について
+### 音高・調弦について
 
 - 基準ピッチは A4 = 430 Hz(`gagaku/tunings.json` の `a4_hz`)。平均律で計算している。
 - 笙の各竹の音高と合竹の構成、竜笛の譜字の音高は、Wikipedia「笙」「龍笛」の表による。
@@ -116,7 +281,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
   - 鞨鼓・太鼓・鉦鼓: 膜・金属の非整数倍モードによる合成。
 - 楽器ごとの試聴用WAVは `python tools/make_previews.py` で `previews/` に書き出せる。
 
-## 構成
+### 構成
 
 ```
 main.py                 起動
@@ -134,12 +299,13 @@ gagaku/assets/          アイコン
 examples/               サンプル譜(pip 版ではパッケージ内に同梱)
 tools/make_previews.py  楽器ごとの試聴用WAVを書き出す
 tools/make_icon.py      アイコンを作り直す
+tools/make_site_audio.py 紹介サイトの試聴用MP3を書き出す
 tests/                  pytest のテスト
 docs/                   紹介サイト(GitHub Pages)
 .github/workflows/      CI(テスト・ビルド)と PyPI への公開
 ```
 
-## 開発
+### 開発
 
 ```bash
 pip install -e . pytest
@@ -147,8 +313,8 @@ python -m pytest
 ```
 
 - push や pull request のたびに、GitHub Actions が Windows / Ubuntu × Python 3.10〜3.13 でテストし、パッケージをビルドする(`.github/workflows/ci.yml`)。
-- PyPI への公開は、`gagaku/__init__.py` の `__version__` を上げてから、同じ番号のタグ(例 `v0.1.1`)で GitHub のリリースを作ると自動で行われる(`.github/workflows/publish.yml`、Trusted Publishing)。
+- PyPI への公開は、`gagaku/__init__.py` の `__version__` を上げてから、同じ番号のタグ(例 `v0.2.2`)で GitHub のリリースを作ると自動で行われる(`.github/workflows/publish.yml`、Trusted Publishing)。
 
-## ライセンス
+### ライセンス
 
 [MIT License](LICENSE)
