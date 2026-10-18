@@ -42,6 +42,29 @@ def test_hichiriki_meri_in_hyojo():
     assert h._pitch("舌", 0, "平調") == pytest.approx(I.hz("F#4"))
     assert h._pitch("丄", 0, "平調") == pytest.approx(I.hz("F#5"))
     assert h._pitch("舌", 0, "双調") == pytest.approx(I.hz("G4"))
+    assert h._pitch("凢", 0, "平調") == pytest.approx(I.hz("B4"))     # メリ凢
+    assert h._pitch("凢", 0, "双調") == pytest.approx(I.hz("C5"))
+
+
+def test_hichiriki_meri_ornaments_in_hyojo():
+    from gagaku import synth
+    h = I.INSTRUMENTS["hichiriki"]
+    syms = ["工", "六", "四", "舌"]
+    notes = [synth.PhraseNote(i, i + 1.0, h._pitch(s, 0, "平調")) for i, s in enumerate(syms)]
+    h._apply_meri(syms, notes, "平調")
+    assert [n.dip for n in notes] == [0, 0, 40, 70]
+    assert notes[1].sink_in == 45 and notes[2].sink_in == 0       # 工→六 の境目で沈む
+    # 曲線: 四の頭はいったん正律より下がり、のちに戻る
+    _, f, _, bounds = synth._phrase_curves(notes, start_bend=0, start_time=0.01, glide_time=0.01,
+                                           kind="hichiriki")
+    a = bounds[2][0]
+    seg = f[a:a + synth._n(0.2)] / notes[2].freq
+    assert seg.min() < 2 ** (-30 / 1200)
+    assert f[a + synth._n(0.5)] / notes[2].freq == pytest.approx(1, abs=0.01)
+    # 双調では装飾なし
+    notes2 = [synth.PhraseNote(i, i + 1.0, 440.0) for i in range(len(syms))]
+    h._apply_meri(syms, notes2, "双調")
+    assert all(n.dip == 0 and n.sink_in == 0 for n in notes2)
 
 
 def test_ryuteki_kan_sits_above_roku():

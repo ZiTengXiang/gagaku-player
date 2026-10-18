@@ -116,6 +116,8 @@ class PhraseNote:
     t1: float
     freq: float
     high: bool = False  # 竜笛の責など
+    dip: float = 0.0      # 音頭でいったん沈めてから立ち上げる深さ(セント)。篳篥のメリなど
+    sink_in: float = 0.0  # 前の音との境目で、なめらかに沈み込ませる深さ(セント)
 
 
 def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
@@ -175,6 +177,19 @@ def _phrase_curves(notes, *, start_bend, start_time, glide_time, kind):
             # 竜笛: 指の動きによる速い移行 + わずかな押し上げ
             path = -interval * (1 - smoothstep(x)) - 12 * np.sin(np.pi * x)
         cents[a:a + g] += path
+
+    # メリの装飾: 音頭で口元を緩めて沈めてから立ち上げる / 前の音との境目で沈み込む
+    for i, (nt, (a, b)) in enumerate(zip(notes, bounds)):
+        span = b - a
+        if nt.dip and span > 2:
+            L = max(2, min(_n(0.22), int(span * 0.6)))
+            x = np.linspace(0, 1, L)
+            cents[a:a + L] -= nt.dip * np.sin(np.pi * x ** 0.6)   # 早めに底へ沈み、ゆっくり戻る
+        if nt.sink_in and i > 0:
+            pa, pb = bounds[i - 1]
+            L = min(_n(0.12), (pb - pa) // 3, span // 3)
+            if L > 1:
+                cents[a - L:a + L] -= nt.sink_in * np.sin(np.pi * np.linspace(0, 1, 2 * L))
 
     # 長い音にのみ、遅れて小さな揺れ
     for (a, b) in bounds:

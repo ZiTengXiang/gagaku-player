@@ -250,6 +250,20 @@ HICHIRIKI = {  # Wikipedia「篳篥」の正律。調子ごとの上書きは tu
 }
 
 
+# 調子ごとのメリの装飾(音の高さそのものの上書きは tunings.json)。
+#   dip:  音頭で口元を緩めていったん沈め、立ち上げる深さ(セント)
+#   sink: その譜字と相手の譜字の境目で、なめらかに沈み込ませる深さ(セント)
+HICHIRIKI_MERI = {
+    "平調": {
+        # 舌・丄は F#(下無)に下げたうえ、音頭は F(勝絶)近くまで沈む。凢はメリ凢で B4 に寄せる。
+        # 四は旋律のつなぎや塩梅の始まりで、わずかに落とし込んでから立ち上げる。
+        "dip": {"舌": 70, "丄": 70, "凢": 60, "四": 40},
+        # 六は工・五へ渡るとき(工・五から来るときも)、なめらかに沈み込む
+        "sink": {"六": ({"工", "五"}, 45)},
+    },
+}
+
+
 class Hichiriki(Instrument):
     key = "hichiriki"
     display = "篳篥"
@@ -277,8 +291,20 @@ class Hichiriki(Instrument):
             T0 = ph[0].start_sec
             notes = [synth.PhraseNote(ev.start_sec - T0, ev.end_sec - T0,
                                       self._pitch(ev.symbol, ev.octave, mode)) for ev in ph]
+            self._apply_meri([ev.symbol for ev in ph], notes, mode)
             items.append((T0, synth.hichiriki_phrase(notes)))
         return items
+
+    @staticmethod
+    def _apply_meri(syms, notes, mode):
+        meri = HICHIRIKI_MERI.get(mode, {})
+        for i, s in enumerate(syms):
+            notes[i].dip = meri.get("dip", {}).get(s, 0.0)
+        for i in range(1, len(syms)):
+            for a, b in ((syms[i - 1], syms[i]), (syms[i], syms[i - 1])):
+                partners, depth = meri.get("sink", {}).get(a, ((), 0.0))
+                if b in partners:
+                    notes[i].sink_in = max(notes[i].sink_in, depth)
 
 
 # ------------------------------------------------------------------ 楽琵琶
