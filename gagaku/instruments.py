@@ -301,7 +301,7 @@ class Biwa(Instrument):
     display = "琵琶"
     aliases = ("琵琶", "楽琵琶", "びわ", "biwa")
     pan = -0.15
-    gain = 0.9
+    gain = 1.15  # 撥の当たりを強めた分、余韻の音量が下がらないよう補う
     palette = [s for row in BIWA_GRID for s in row] + ["単一", "単乚", "単ク", "単丄"]
     symbol_aliases = {"凡": "凢", "上": "丄", "行": "ク", "ゝ": "〻", "々": "〻", "比": "ヒ"}
 
