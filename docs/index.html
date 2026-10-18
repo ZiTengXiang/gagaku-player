@@ -148,6 +148,9 @@
   ul.updates li { margin-bottom: 8px; }
   ul.updates strong { color: var(--accent); }
   .small-note { color: var(--muted); font-size: .9rem; }
+  a.more { display: inline-block; margin-top: 8px; font-weight: bold; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a.more::after { content: " →"; }
+  .card a.more { font-size: .92rem; }
   .lang { margin: -40px 0 24px; font-size: .9rem; color: var(--muted); }
   @media (max-width: 600px) { .lang { margin-top: -24px; word-break: break-all; } }
   footer { padding: 30px 0 50px; color: var(--muted); font-size: .9rem; }
@@ -189,6 +192,7 @@
         <p>雅楽を代表する古典曲。このアプリで採譜した版です。</p>
         <audio controls preload="none" src="audio/etenraku.mp3"></audio>
         <small>約1分39秒。全24小節を、笙・篳篥・竜笛・琵琶・鞨鼓・鉦鼓・太鼓で採譜しています(筝は入っていません)。</small>
+        <p><a class="more" href="hyojo/">平調の各楽器の譜字と音高を見る</a></p>
       </div>
       <div class="listen">
         <h3>若竹 <span class="mode">双調</span></h3>
@@ -225,7 +229,7 @@
     <div class="features">
       <div class="card"><h3>譜字のまま入力</h3><p>合竹(乞 一 工 凢 …)、篳篥・竜笛の譜字、琵琶の柱、筝の弦名、正・来・百・図などを、そのままテキストで書けます。譜字パレットからクリックでも入力できます。</p></div>
       <div class="card"><h3>雅楽らしい奏し方</h3><p>笙は手移りで共通の竹を鳴らし続け、篳篥は塩梅で音をつなぎます。同じ譜字が続くところは吹き直して切れ目を付けます。琵琶の掻撥、筝の閑掻・早掻、鞨鼓の来(テンポに連動)も再現します。</p></div>
-      <div class="card"><h3>六つの調子</h3><p>壱越調・平調・双調・黄鐘調・盤渉調・太食調に対応。平調では篳篥の舌・丄をメリで下げ、凢・四・六にもメリの奏法を付けて吹きます。竜笛も平調のメリ・ハカリに対応。<a href="hyojo/">平調の音階と譜字の対応表</a>もあります。</p></div>
+      <div class="card"><h3>六つの調子</h3><p>壱越調・平調・双調・黄鐘調・盤渉調・太食調に対応。平調では篳篥の舌・丄をメリで下げ、凢・四・六にもメリの奏法を付けて吹きます。竜笛も平調のメリ・ハカリに対応。<br><a class="more" href="hyojo/">平調の音階と譜字の対応表</a></p></div>
       <div class="card"><h3>縦にそろう譜面</h3><p>譜面テキストは1段5小節で全楽器が上下に並び、拍の頭が縦にそろうよう自動で整形されます。</p></div>
       <div class="card"><h3>楽譜表示・五線譜</h3><p>拍をそろえた総譜と、字譜つきの五線譜を表示。再生中は鳴っている音がハイライトされます。</p></div>
       <div class="card"><h3>テンポ変化・WAV 書き出し</h3><p>次第に速まる雅楽のテンポを <code>tempo=</code> で書けます。演奏は WAV ファイルに書き出せます。</p></div>
@@ -320,6 +324,7 @@ python main.py examples/wakatake_sojo.gaku</pre>
     <h2>音高と調弦について</h2>
     <div class="note">
       <p>基準ピッチは A4 = 430 Hz です。笙・篳篥・竜笛の音高は公開資料の表に基づいています。楽琵琶・楽箏の調子ごとの調弦は出典が見つからなかったため、主音と音階から組んだ<strong>暫定値</strong>です(<code>gagaku/tunings.json</code> で書き換えられます)。閑掻・早掻・掻撥・来などの奏法も、手順を簡略化した近似です。正しい調弦や奏法をご存じの方は、<a href="https://github.com/ZiTengXiang/gagaku-player/issues">GitHub の Issues</a> で教えていただけると助かります。</p>
+      <p>平調で各楽器の譜字がどの高さで鳴るか、平調のメリ・ハカリでどう音を変えるかは、表にまとめています。<br><a class="more" href="hyojo/">平調の音階と譜字の対応表</a></p>
     </div>
   </section>
 
@@ -333,7 +338,7 @@ python main.py examples/wakatake_sojo.gaku</pre>
       <dt>スマートフォンのアプリはありますか?</dt>
       <dd>いまはパソコン用(Windows・macOS・Linux)のデスクトップアプリだけです。Python 3.10 以上で動きます。</dd>
       <dt>どの楽器・調子に対応していますか?</dt>
-      <dd>管絃の八つの楽器(笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓)と、六つの調子(壱越調・平調・双調・黄鐘調・盤渉調・太食調)に対応しています。</dd>
+      <dd>管絃の八つの楽器(笙・篳篥・竜笛・琵琶・筝・鞨鼓・鉦鼓・太鼓)と、六つの調子(壱越調・平調・双調・黄鐘調・盤渉調・太食調)に対応しています。平調の譜字と音高の対応は「<a href="hyojo/">平調の音階と譜字の対応表</a>」をご覧ください。</dd>
       <dt>雅楽の楽譜(譜字)が読めなくても使えますか?</dt>
       <dd>譜字パレットから楽器ごとの譜字をクリックで入力でき、五線譜タブでは各音を五線譜で確かめられます。サンプル曲も入っているので、まずは <code>gagaku-player --demo</code> で聴いてみてください。</dd>
       <dt>音は録音ですか?</dt>

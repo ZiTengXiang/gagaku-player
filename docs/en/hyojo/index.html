@@ -123,6 +123,9 @@
   ul.updates li { margin-bottom: 8px; }
   ul.updates strong { color: var(--accent); }
   .small-note { color: var(--muted); font-size: .9rem; }
+  a.more { display: inline-block; margin-top: 8px; font-weight: bold; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a.more::after { content: " →"; }
+  .card a.more { font-size: .92rem; }
   .lang { margin: -40px 0 24px; font-size: .9rem; color: var(--muted); }
   @media (max-width: 600px) { .lang { margin-top: -24px; word-break: break-all; } }
   footer { padding: 30px 0 50px; color: var(--muted); font-size: .9rem; }
