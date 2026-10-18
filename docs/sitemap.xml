@@ -14,4 +14,18 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://zitengxiang.github.io/gagaku-player/en/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://zitengxiang.github.io/gagaku-player/en/"/>
   </url>
+  <url>
+    <loc>https://zitengxiang.github.io/gagaku-player/hyojo/</loc>
+    <lastmod>2026-10-18</lastmod>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://zitengxiang.github.io/gagaku-player/hyojo/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://zitengxiang.github.io/gagaku-player/en/hyojo/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zitengxiang.github.io/gagaku-player/en/hyojo/"/>
+  </url>
+  <url>
+    <loc>https://zitengxiang.github.io/gagaku-player/en/hyojo/</loc>
+    <lastmod>2026-10-18</lastmod>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://zitengxiang.github.io/gagaku-player/hyojo/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://zitengxiang.github.io/gagaku-player/en/hyojo/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zitengxiang.github.io/gagaku-player/en/hyojo/"/>
+  </url>
 </urlset>

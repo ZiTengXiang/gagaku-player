@@ -184,6 +184,7 @@ When you open, save, play or export, or press the "縦にそろえる" (align) b
   - Biwa and koto: strings with partials that decay at different rates, plus the sound of the plectrum or picks and the body resonance.
   - Kakko, taiko and shōko: inharmonic membrane and metal modes.
 - Write preview WAVs per instrument to `previews/` with `python tools/make_previews.py`.
+- A chart of the Hyōjō (平調) scale with each instrument's characters and the app's Hyōjō techniques (meri, hakari) is on the website: [Hyōjō scale and notation chart](https://zitengxiang.github.io/gagaku-player/en/hyojo/). It is generated from the app's pitch data with `python tools/build_hyojo_table.py`.
 
 ### Layout
 
@@ -207,6 +208,7 @@ tools/make_previews.py  writes preview WAVs per instrument
 tools/make_icon.py      rebuilds the icon
 tools/make_site_audio.py writes the website's preview MP3s
 tools/build_plugin_index.py builds the online plugin catalog (docs/plugins/)
+tools/build_hyojo_table.py builds the Hyōjō scale chart (docs/hyojo/, docs/en/hyojo/)
 tests/                  pytest tests
 docs/                   website (GitHub Pages)
 .github/workflows/      CI (test and build) and PyPI publishing
@@ -405,6 +407,7 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
   - 琵琶・筝: 倍音ごとに減衰の違う弦の音に、撥・爪の打撃音と胴の共鳴を加える。
   - 鞨鼓・太鼓・鉦鼓: 膜・金属の非整数倍モードによる合成。
 - 楽器ごとの試聴用WAVは `python tools/make_previews.py` で `previews/` に書き出せる。
+- 平調の音階と各楽器の譜字の対応、平調のメリ・ハカリの一覧は、紹介サイトの「[平調の音階と譜字の対応表](https://zitengxiang.github.io/gagaku-player/hyojo/)」にまとめている。アプリの音高データから `python tools/build_hyojo_table.py` で作っている。
 
 ### 構成
 
@@ -428,6 +431,7 @@ tools/make_previews.py  楽器ごとの試聴用WAVを書き出す
 tools/make_icon.py      アイコンを作り直す
 tools/make_site_audio.py 紹介サイトの試聴用MP3を書き出す
 tools/build_plugin_index.py オンラインのプラグイン一覧(docs/plugins/)を作る
+tools/build_hyojo_table.py 平調の音階と譜字の対応表(docs/hyojo/, docs/en/hyojo/)を作る
 tests/                  pytest のテスト
 docs/                   紹介サイト(GitHub Pages)
 .github/workflows/      CI(テスト・ビルド)と PyPI への公開
