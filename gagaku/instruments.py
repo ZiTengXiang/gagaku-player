@@ -1,7 +1,7 @@
 """楽器定義: 譜字 → 音高 / 奏法 の対応と、1音ぶんの波形生成。
 
 笙・竜笛の音高は Wikipedia「笙」「龍笛」の表に基づく。
-楽琵琶・楽箏の調弦は tunings.json (暫定値・編集可)。
+楽琵琶(暫定値)・楽箏の調弦は tunings.json (編集可)。
 """
 from __future__ import annotations
 

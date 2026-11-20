@@ -165,3 +165,23 @@ def test_other_modes_meri():
     n = [synth.PhraseNote(e.start_sec, e.end_sec, *r._pitch(e.symbol, 0, "壱越調")) for e in evs]
     r._apply_meri(evs, n, "壱越調")
     assert n[0].settle == 20 and n[1].settle == 0
+
+
+def test_koto_tuning_follows_ritsu_ryo_rule():
+    """楽箏: 主音を宮とし、律は 徴宮商角徴羽宮商角徴羽宮商、呂は 宮宮徴羽宮商角徴羽宮商角徴。"""
+    from gagaku.instruments import _TUNINGS
+    from gagaku.instruments import hz
+    import math
+    ritsu = "徴宮商角徴羽宮商角徴羽宮商"
+    ryo = "宮宮徴羽宮商角徴羽宮商角徴"
+    off = {"律": dict(宮=0, 商=2, 角=5, 徴=7, 羽=9), "呂": dict(宮=0, 商=2, 角=4, 徴=7, 羽=9)}
+    modes = {"平調": ("律", "E"), "黄鐘調": ("律", "A"), "盤渉調": ("律", "B"),
+             "壱越調": ("呂", "D"), "双調": ("呂", "G"), "太食調": ("呂", "E")}
+    for mode, (kind, tonic) in modes.items():
+        tune = _TUNINGS["koto"][mode]
+        pat = ritsu if kind == "律" else ryo
+        for note, deg in zip(tune, pat):
+            semis = round(12 * math.log2(hz(note) / hz(tonic + "4"))) % 12
+            assert semis == off[kind][deg], (mode, note, deg)
+    assert _TUNINGS["koto"]["平調"][:5] == ["B3", "E3", "F#3", "A3", "B3"]
+    assert _TUNINGS["koto"]["双調"][:5] == ["G3", "G3", "D3", "E3", "G3"]

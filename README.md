@@ -176,7 +176,8 @@ When you open, save, play or export, or press the "縦にそろえる" (align) b
 
 - Reference pitch A4 = 430 Hz (`a4_hz` in `gagaku/tunings.json`), in equal temperament.
 - The pitches of the shō pipes and the makeup of its chords, and the pitches of the ryūteki characters, follow the tables in Japanese Wikipedia ("笙", "龍笛").
-- **No source was found for the gakubiwa and gakusō tunings in each mode.** They are therefore **provisional**, built from the tonic and scale of each mode. Edit `gagaku/tunings.json` to use accurate tunings (biwa: [open, frets 1–4] per string; koto: the 13 strings 一–巾).
+- **No source was found for the gakubiwa tunings in each mode.** They are therefore **provisional**, built from the tonic and scale of each mode. Edit `gagaku/tunings.json` to use accurate tunings ([open, frets 1–4] per string).
+- The gakusō is tuned with the mode's tonic as kyū: ritsu modes (Hyōjō, Ōshiki, Banshiki) set 一–巾 to chi kyū shō kaku chi u kyū shō kaku chi u kyū shō, ryo modes (Ichikotsu, Sōjō, Taishiki) to kyū kyū chi u kyū shō kaku chi u kyū shō kaku chi. Hyōjō and Sōjō match the tuning charts of the Koizumi Fumio Memorial Archives (Tokyo University of the Arts).
 - The 閑掻, 早掻, 掻撥 and 来 techniques are simplified approximations.
 - All sounds are synthesized with numpy; no samples are used.
   - Shō: pipes shared between consecutive chords keep sounding, and only the changing pipes enter and leave slightly staggered (手移り). Each chord swells with the breath.
@@ -399,7 +400,8 @@ ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら
 
 - 基準ピッチは A4 = 430 Hz(`gagaku/tunings.json` の `a4_hz`)。平均律で計算している。
 - 笙の各竹の音高と合竹の構成、竜笛の譜字の音高は、Wikipedia「笙」「龍笛」の表による。
-- **楽琵琶・楽箏の調子ごとの調弦は、調べた範囲では出典が見つからなかった。** そのため各調子の主音と音階から組んだ**暫定値**になっている。正確な調弦は `gagaku/tunings.json` を書き換えれば反映される(琵琶は各弦の[開放, 第1〜4柱]、筝は一〜巾の13弦)。
+- **楽琵琶の調子ごとの調弦は、調べた範囲では出典が見つからなかった。** そのため各調子の主音と音階から組んだ**暫定値**になっている。正確な調弦は `gagaku/tunings.json` を書き換えれば反映される(各弦の[開放, 第1〜4柱])。
+- 楽箏は調子の主音を宮に置き、律の調子(平調・黄鐘調・盤渉調)は一〜巾を「徴宮商角徴羽宮商角徴羽宮商」、呂の調子(壱越調・双調・太食調)は「宮宮徴羽宮商角徴羽宮商角徴」に合わせる。平調・双調の高さは東京藝術大学 小泉文夫記念資料室の調弦図と同じ。
 - 閑掻・早掻・掻撥・来の奏法は、手順を簡略化した近似。
 - 音色は numpy による合成で、サンプル音源ではない。
   - 笙: 合竹が替わっても共通の竹は鳴り続け、入れ替わる竹だけが手移りで少しずつずれて出入りする。合竹ごとに息で膨らむ。

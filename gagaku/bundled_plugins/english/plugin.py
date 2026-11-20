@@ -102,7 +102,7 @@ TEXTS = {
     "help.hichiriki": "舌 五 工 凢 六 四 一 丄 丁 (low to high, G4–A5). ム is not used in current pieces. Notes start with an enbai pitch bend. In Hyōjō, 舌 is lowered to F#4 and 丄 to F#5 (meri).",
     "help.ryuteki": "Low-register (wa) characters. Hold with - (1 beat) or -:2 (2 beats). 責六 or 六' for the high register (seme); 干, for one octave lower. 干 sounds above 六 (E).",
     "help.biwa": "String 1: 一工凢フ斗  2: 乚下十乙コ  3: ク七ヒ〻之  4: 丄八丨ム也 (open, frets 1–4). Normally a sweep that lands on the beat; prefix 単 for a single note. Join with + (e.g. 一+ク) to strike different strings together. Tunings are provisional (tunings.json).",
-    "help.koto": "String names 一–十 斗 為 巾 for single notes. 閑三 = shizugaki pattern, 早三 = hayagaki pattern (approximate). Half beat: 三:1/2 (rest: .:1/2). Tunings are provisional (tunings.json).",
+    "help.koto": "String names 一–十 斗 為 巾 for single notes. 閑三 = shizugaki pattern, 早三 = hayagaki pattern (approximate). Half beat: 三:1/2 (rest: .:1/2). Tuned with the tonic as kyū: ritsu modes 一–巾 = chi kyū shō kaku chi u kyū shō kaku chi u kyū shō, ryo modes kyū kyū chi u kyū shō kaku chi u kyū shō kaku chi (tunings.json).",
     "help.kakko": "正 = single right stroke / 片来 = roll with the left stick / 諸来 = roll with both sticks. Give rolls a length, e.g. 諸来:3 (speed follows the tempo).",
     "help.shoko": "金・生 = one stroke / ク = left / レイ = right / クレイ = left then right",
     "help.taiko": "図 = light lead-in stroke (zun) / 百 = strong stroke (dō)",
