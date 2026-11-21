@@ -38,7 +38,7 @@
   "applicationCategory": "MultimediaApplication",
   "applicationSubCategory": "雅楽の打ち込み・DTM",
   "operatingSystem": "Windows, macOS, Linux",
-  "softwareVersion": "0.5.1",
+  "softwareVersion": "0.5.2",
   "inLanguage": "ja",
   "license": "https://opensource.org/licenses/MIT",
   "url": "https://zitengxiang.github.io/gagaku-player/",
@@ -262,6 +262,7 @@
   <section id="updates">
     <h2>最近の更新</h2>
     <ul class="updates">
+      <li><strong>ミキサーの保存</strong> — 譜面を保存すると、ミキサー(パートごとの音量・ミュート)と残響の設定もファイルに書かれ(ヘッダ <code>mix:</code> / <code>reverb:</code>)、開くと元に戻る(pip 版 0.5.2 から)。</li>
       <li><strong>楽箏の調弦</strong> — 調子の主音を宮に置き、律の調子(平調・黄鐘調・盤渉調)は一〜巾を「徴宮商角徴羽宮商角徴羽宮商」、呂の調子(壱越調・双調・太食調)は「宮宮徴羽宮商角徴羽宮商角徴」に合わせるようにした。試聴曲もこの調弦で録り直した(pip 版 0.5.1 から)。</li>
       <li><strong>試聴曲</strong> — 盤渉調の「霜夜」と太食調の「花筏」を追加し、これで六つの調子すべての曲を聴けるようにした。越天楽(採譜を更新)と既存の曲も、最新の音色・メリ・ハカリで録り直した。</li>
       <li><strong>六つの調子すべての対応表</strong> — 壱越調・平調・双調・黄鐘調・盤渉調・太食調それぞれの音階と、各楽器の譜字・音高、メリ・ハカリの対応表を追加(「できること」の「六つの調子」から開けます)。</li>
@@ -281,7 +282,7 @@
       <li><strong>鞨鼓</strong> — 来(片来・諸来)の連打をゆるやかにし、速さをテンポに連動させた。</li>
       <li><strong>不具合の修正</strong> — 起動時に譜面の欄が隠れてしまうことがある問題、楽譜表示・五線譜タブを開いたままファイルを開くと前の譜面が残る問題を直した。</li>
     </ul>
-    <p class="small-note">※ これらの更新は pip 版 0.5.1(2026年11月20日公開。着地型の掻撥は 0.2.1、プラグインは 0.3.0、平調のメリ・ハカリと音色の調整は 0.4.0、ほかの調子のメリ・ハカリは 0.5.0、楽箏の調弦は 0.5.1 から)に入っています。すでに入れている場合は <code>pip install -U gagaku-player</code> で更新できます。</p>
+    <p class="small-note">※ これらの更新は pip 版 0.5.2(2026年11月21日公開。着地型の掻撥は 0.2.1、プラグインは 0.3.0、平調のメリ・ハカリと音色の調整は 0.4.0、ほかの調子のメリ・ハカリは 0.5.0、楽箏の調弦は 0.5.1、ミキサーの保存は 0.5.2 から)に入っています。すでに入れている場合は <code>pip install -U gagaku-player</code> で更新できます。</p>
   </section>
 
   <section>
