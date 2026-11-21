@@ -40,6 +40,10 @@ EXTEND_DUR_RE = re.compile(r"^[-ー―－‐][:：](?P<dur>[0-9０-９./／]+)$"
 TEMPO_RE = re.compile(r"^(?:tempo|テンポ)[=＝:：](?P<bpm>[0-9.]+)$", re.I)
 BEATS_KEYS = ("beats", "拍子", "拍数")   # 1小節の拍数のヘッダ名
 MA_KEYS = ("ma", "間", "間合い")         # 小節の間に取る「間(ま)」の長さ(拍)のヘッダ名
+MIX_KEYS = ("mix", "ミキサー")            # パートごとの音量・ミュートのヘッダ名
+REVERB_KEYS = ("reverb", "残響")          # 残響の量のヘッダ名
+DEFAULT_REVERB = 0.3
+MUTE_WORDS = ("mute", "off", "ミュート")
 HEADER_RE = re.compile(r"^(?P<key>[A-Za-z_一-龥ぁ-んァ-ヶ]+)\s*[:：]\s*(?P<val>.*)$")
 # [楽器名] の後ろに同じ行で音符を続けてもよい(整形後の書式)
 SECTION_RE = re.compile(r"^\[(?P<name>[^\]]+)\](?P<rest>.*)$")
@@ -92,6 +96,10 @@ class Score:
     # ヘッダ ma: で指定された「間(ま)」の長さ(拍)。0 なら間なし(インテンポ)。
     # 間ありでは、各小節の終わりにこの長さの間を挟み、その間は鳴っている音を延ばす。
     ma_beats: Fraction = Fraction(0)
+    # ヘッダ mix: / reverb: で保存されたミキサーの設定(書かれていない楽器は音量 1・ミュートなし)
+    volumes: dict[str, float] = field(default_factory=dict)
+    muted: set[str] = field(default_factory=set)
+    reverb: float | None = None
 
     def bars(self, default_len: int = 4) -> list[tuple[Fraction, Fraction]]:
         """小節の (開始拍, 終了拍) のリスト。
@@ -132,6 +140,54 @@ def _tokenize(line: str):
     code = line.split("#", 1)[0]
     for m in re.finditer(r"\S+", code):
         yield m.group(), m.start(), m.end()
+
+
+def _parse_mix(score: Score, val: str, lineno: int):
+    """「mix: 篳篥=0.8, 竜笛=1.2, 筝=1 mute」を読む。"""
+    for item in re.split(r"[,、，]", val):
+        item = item.strip()
+        if not item:
+            continue
+        m = re.match(r"^(?P<name>[^=＝\s]+)\s*[=＝]\s*(?P<vol>[0-9０-９.．]+)?\s*(?P<mute>\S+)?$", item)
+        if not m:
+            raise ScoreError(f"ミキサーの指定 '{item}' が読めません(例: 篳篥=0.8, 筝=1 mute)", lineno)
+        key = instruments.resolve_name(m.group("name"))
+        if key is None:
+            raise ScoreError(f"ミキサーの楽器名 '{m.group('name')}' は不明です", lineno)
+        if m.group("vol"):
+            try:
+                vol = float(_to_halfwidth(m.group("vol")).replace("．", "."))
+            except ValueError:
+                raise ScoreError(f"音量 '{m.group('vol')}' が数値ではありません", lineno)
+            if not 0 <= vol <= 2:
+                raise ScoreError("音量は 0〜2 にしてください", lineno)
+            score.volumes[key] = vol
+        mute = m.group("mute")
+        if mute:
+            if mute.lower() not in MUTE_WORDS:
+                raise ScoreError(f"'{mute}' は読めません(ミュートは mute と書きます)", lineno)
+            score.muted.add(key)
+
+
+def _fmt_num(x: float) -> str:
+    s = f"{x:.2f}".rstrip("0").rstrip(".")
+    return s or "0"
+
+
+def format_mix(volumes: dict[str, float], muted: set[str]) -> str | None:
+    """ミキサーの状態をヘッダ行にする(すべて既定値なら None)。"""
+    items = []
+    for key, inst in instruments.INSTRUMENTS.items():
+        vol = volumes.get(key, 1.0)
+        if abs(vol - 1.0) < 0.005 and key not in muted:
+            continue
+        items.append(f"{inst.display}={_fmt_num(vol)}" + (" mute" if key in muted else ""))
+    return "mix: " + ", ".join(items) if items else None
+
+
+def format_reverb(reverb: float) -> str | None:
+    """残響をヘッダ行にする(既定値なら None)。"""
+    return None if abs(reverb - DEFAULT_REVERB) < 0.005 else f"reverb: {_fmt_num(reverb)}"
 
 
 def parse(text: str) -> Score:
@@ -195,6 +251,16 @@ def parse(text: str) -> Score:
                 if ma < 0:
                     raise ScoreError("間(ま)の長さは0以上にしてください", lineno)
                 score.ma_beats = ma
+            elif key in MIX_KEYS:
+                _parse_mix(score, val, lineno)
+            elif key in REVERB_KEYS:
+                try:
+                    rv = float(_to_halfwidth(val).replace("．", "."))
+                except ValueError:
+                    raise ScoreError(f"残響 '{val}' が数値ではありません", lineno)
+                if not 0 <= rv <= 1:
+                    raise ScoreError("残響は 0〜1 にしてください", lineno)
+                score.reverb = rv
             else:
                 score.warnings.append(f"{lineno}行目: 未知のヘッダ '{key}' は無視しました")
             continue

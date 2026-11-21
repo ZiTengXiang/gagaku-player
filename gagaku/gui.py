@@ -538,6 +538,7 @@ class App(tk.Tk):
         self._update_title()
         self._sync_beats_box()
         self._sync_ma_box()
+        self._sync_mixer()
         self._refresh_score_view()
 
     def ask_open(self):
@@ -561,6 +562,7 @@ class App(tk.Tk):
         self._highlight_syntax()
         self._sync_beats_box()
         self._sync_ma_box()
+        self._sync_mixer()
         self._refresh_score_view()   # 楽譜表示・五線譜タブを開いたままでも新しい譜面に描き直す
 
     # ------------------------------------------------------------ 1小節の拍数
@@ -606,16 +608,25 @@ class App(tk.Tk):
                 return
             del lines[idx]
         elif idx is not None:
+            if lines[idx] == new_line:
+                return
             lines[idx] = new_line
         else:
             # ヘッダの最後の「key: 値」行の後ろに入れる
             last = max((i for i in range(first_sec)
                         if score_mod.HEADER_RE.match(lines[i].split("#", 1)[0].strip())), default=-1)
             lines.insert(last + 1, new_line)
+        # 書き換えてもカーソルと表示位置はそのまま(ヘッダの行が増減した分だけずらす)
+        n_old = int(self.text.index("end-1c").split(".")[0])
+        cur_line, cur_col = map(int, self.text.index(tk.INSERT).split("."))
+        top = self.text.yview()[0]
         self.text.edit_separator()
         self.text.delete("1.0", tk.END)
         self.text.insert("1.0", "\n".join(lines))
         self.text.edit_separator()
+        delta = len(lines) - n_old
+        self.text.mark_set(tk.INSERT, f"{max(1, cur_line + (delta if cur_line > first_sec else 0))}.{cur_col}")
+        self.text.yview_moveto(top)
         self._highlight_syntax()
 
     # ------------------------------------------------------------ 小節の間(ま)
@@ -648,12 +659,32 @@ class App(tk.Tk):
         self._update_status(self.t("status.ma_on", "小節の間(ま): {n} 拍(再生・書き出しに反映)", n=state[1])
                             if state[0] else self.t("status.ma_off", "小節の間(ま)なし(インテンポ)"))
 
+    # ------------------------------------------------------------ ミキサーの保存
+    def _sync_mixer(self):
+        """譜面のヘッダ mix: / reverb: をミキサーに反映する(書かれていなければ既定値に戻す)。"""
+        try:
+            sc = score_mod.parse(self.text.get("1.0", "end-1c"))
+        except score_mod.ScoreError:
+            sc = score_mod.Score()
+        for key in self.vol_vars:
+            self.vol_vars[key].set(sc.volumes.get(key, 1.0))
+            self.mute_vars[key].set(key not in sc.muted)
+        self.reverb.set(score_mod.DEFAULT_REVERB if sc.reverb is None else sc.reverb)
+
+    def _write_mixer_header(self):
+        """いまのミキサー(音量・ミュート・残響)をヘッダ mix: / reverb: に書く。"""
+        vols = {k: v.get() for k, v in self.vol_vars.items()}
+        muted = {k for k, v in self.mute_vars.items() if not v.get()}
+        self._write_header(score_mod.MIX_KEYS, score_mod.format_mix(vols, muted))
+        self._write_header(score_mod.REVERB_KEYS, score_mod.format_reverb(self.reverb.get()))
+
     def save(self) -> bool:
         if self.path is None:
             p = filedialog.asksaveasfilename(defaultextension=".gaku", filetypes=self._filetypes())
             if not p:
                 return False
             self.path = Path(p)
+        self._write_mixer_header()
         self.align_text(auto=True)
         self.path.write_text(self.text.get("1.0", "end-1c") + "\n", encoding="utf-8")
         self._dirty = False

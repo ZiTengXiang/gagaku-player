@@ -124,3 +124,31 @@ def test_beats_box_rebars_text(app):
     sc = score.parse(app.text.get("1.0", "end-1c"))
     assert sc.beats_per_bar == 3
     assert all(b1 - b0 == 3 for b0, b1 in sc.bars())
+
+
+def test_mixer_is_saved_and_restored(app, tmp_path):
+    from gagaku import score
+    p = tmp_path / "mix.gaku"
+    app.path = p
+    app.vol_vars["hichiriki"].set(0.8)
+    app.vol_vars["ryuteki"].set(1.25)
+    app.mute_vars["koto"].set(False)
+    app.reverb.set(0.5)
+    assert app.save()
+    text = p.read_text(encoding="utf-8")
+    assert "mix: 篳篥=0.8, 竜笛=1.25, 筝=1 mute" in text and "reverb: 0.5" in text
+    sc = score.parse(text)
+    assert sc.volumes == {"hichiriki": 0.8, "ryuteki": 1.25, "koto": 1.0} and sc.muted == {"koto"}
+    # 別の曲を開くと既定値に戻り、保存した曲を開き直すと元に戻る
+    app.open_file(EXAMPLES / "tsukikage_oshiki.gaku")
+    assert app.vol_vars["hichiriki"].get() == 1.0 and app.mute_vars["koto"].get() and app.reverb.get() == 0.3
+    app.open_file(p)
+    assert app.vol_vars["hichiriki"].get() == 0.8 and not app.mute_vars["koto"].get() and app.reverb.get() == 0.5
+    # 既定値に戻して保存すると行は消える
+    for k in app.vol_vars:
+        app.vol_vars[k].set(1.0)
+        app.mute_vars[k].set(True)
+    app.reverb.set(0.3)
+    assert app.save()
+    text = p.read_text(encoding="utf-8")
+    assert "mix:" not in text and "reverb:" not in text

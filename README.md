@@ -47,7 +47,7 @@ python main.py examples/demo_hyojo.gaku
 - Left, "五線譜" (staff) tab: a read-only full score in Western staff notation, five bars per system, with the gagaku character under each note. One beat = a quarter note; notes crossing beats or bar lines are tied. Clefs are chosen automatically from each instrument's range (treble, bass, and treble 8va/8vb). There is no key signature; sharps are written on each note. Shō chords (合竹) are written as chords; biwa sweeps (掻撥) and koto patterns (閑掻・早掻) as arpeggiated chords. Percussion uses a one-line staff (× noteheads for kakko and shōko; tremolo for rolls 来). Highlighting and click-to-jump work as in the score view.
 - Menu bar: File (new, open, save, export WAV, quit) and Plugins (find and manage plugins).
 - Top right: a palette of notation characters per instrument. Click to insert at the cursor.
-- Bottom right: the mixer (mute and volume per part).
+- Bottom right: the mixer (mute and volume per part). The mixer and reverb settings are saved in the score file (`mix:` / `reverb:` headers) and restored when it is opened.
 - Toolbar "1小節 _ 拍" (beats per bar): changing it writes `beats:` to the header and re-bars the score text, score view and staff at that many beats (the sound does not change).
 - Toolbar "小節の間(ま) _ 拍" (ma between bars): turns the pause between bars on or off and sets its length.
   - **On**: a pause of the given number of beats is inserted at the end of each bar (except the last). During it, every note sounding at the end of the bar (held notes and notes crossing the bar line) is sustained. Parts resting at the end of the bar stay silent.
@@ -122,6 +122,8 @@ mode: 平調          # 壱越調 平調 双調 黄鐘調 盤渉調 太食調
 tempo: 60           # BPM per beat
 beats: 4            # beats per bar (if omitted, bars follow | in the score)
 ma: 1               # length of the pause between bars, in beats; omit or 0 for none
+mix: 篳篥=0.8, 筝=1 mute   # mixer (volume 0–2, mute); written on save, only for parts not at the default
+reverb: 0.5         # reverb 0–1 (default 0.3); written on save when changed
 
 [笙]
 乙 - - - | 一 - 工 - |
@@ -271,7 +273,7 @@ python main.py examples/demo_hyojo.gaku
 - 左「五線譜」タブ: 全楽器を1段5小節の総譜として五線譜で書き、各音の下に譜字を付ける(読み取り専用)。1拍 = 4分音符で、小節や拍をまたぐ音はタイでつなぐ。音部記号は楽器の音域から自動で選ぶ(ト音記号・ヘ音記号・オクターブ上下のト音記号)。調号は使わず ♯ を音ごとに付ける。笙は合竹を和音で、琵琶の掻撥と筝の閑掻・早掻は鳴る音をアルペジオ付きの和音で書く。打楽器は1線譜(鞨鼓・鉦鼓は×の符頭、来はトレモロ)。再生ハイライトとクリックでのジャンプは楽譜表示と同じ。
 - メニューバー: ファイル(新規・開く・保存・WAV書き出し・終了)と、プラグイン(プラグインを探す・管理)。
 - 右上: 譜字パレット(楽器タブごと)。クリックするとカーソル位置に挿入。
-- 右下: ミキサー(パートごとのミュート・音量)。
+- 右下: ミキサー(パートごとのミュート・音量)。ミキサーと残響の設定は保存時に譜面ファイルのヘッダ(`mix:` / `reverb:`)に書かれ、開くと元に戻る。
 - ツールバー「1小節 _ 拍」: 1小節の拍数。変えるとヘッダに `beats:` を書き、譜面テキスト・楽譜表示・五線譜を、その拍数ごとの小節に区切り直す(音は変わらない)。
 - ツールバー「小節の間(ま) _ 拍」: 小節の間に間(ま)を取るかどうかの切り替えと、その長さ。
   - **間あり**: 各小節の終わり(最後の小節を除く)に指定した拍数の間を挟み、その間は小節の終わりで鳴っている音(延ばしている音・小節線をまたぐ音)をすべて延ばす。小節の終わりで休んでいるパートは休みのまま。
@@ -346,6 +348,8 @@ mode: 平調          # 壱越調 平調 双調 黄鐘調 盤渉調 太食調
 tempo: 60           # 1拍あたりのBPM
 beats: 4            # 1小節の拍数(省略時は譜面の | で区切る)
 ma: 1               # 小節の間(ま)の長さ(拍)。省略または 0 なら間なし
+mix: 篳篥=0.8, 筝=1 mute   # ミキサー(音量 0〜2・ミュート)。保存時に、既定から変えたパートだけ書かれる
+reverb: 0.5         # 残響 0〜1(既定 0.3)。変えたときだけ保存時に書かれる
 
 [笙]
 乙 - - - | 一 - 工 - |

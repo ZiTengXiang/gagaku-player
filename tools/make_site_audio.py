@@ -30,7 +30,8 @@ for name, path in pieces:
         print(f"skip {name}: 譜面ファイルがありません")
         continue
     sc = score.parse(path.read_text(encoding="utf-8"))
-    data = render.render(sc, reverb=0.3)
+    # 譜面に保存されたミキサー(mix: / reverb:)があればそれで鳴らす
+    data = render.render(sc, sc.muted, sc.volumes, score.DEFAULT_REVERB if sc.reverb is None else sc.reverb)
     # 余韻の無音部分を切り詰め、最後を軽くフェード
     loud = np.where(np.abs(data).max(axis=1) > 1e-3)[0]
     data = data[: min(len(data), loud[-1] + int(0.5 * render.SR))] if len(loud) else data

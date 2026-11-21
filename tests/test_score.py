@@ -87,3 +87,16 @@ def test_biwa_simultaneous_strings():
 def test_length_warning():
     sc = score.parse("[笙]\n乙 - - -\n[篳篥]\n六 -\n")
     assert any("揃っていません" in w for w in sc.warnings)
+
+
+def test_mix_and_reverb_headers():
+    from gagaku import score
+    sc = score.parse("title: t\nmode: 平調\nmix: 篳篥=0.8, 竜笛＝1.2、筝=1 mute, 笙=ミュート\n残響: 0.45\n[笙] 乙\n")
+    assert sc.volumes == {"hichiriki": 0.8, "ryuteki": 1.2, "koto": 1.0}
+    assert sc.muted == {"koto", "sho"} and sc.reverb == 0.45
+    assert score.format_mix(sc.volumes, sc.muted) == "mix: 笙=1 mute, 篳篥=0.8, 竜笛=1.2, 筝=1 mute"
+    assert score.format_mix({}, set()) is None and score.format_reverb(0.3) is None
+    import pytest
+    for bad in ("mix: 尺八=1", "mix: 笙=3", "mix: 笙=1 loud", "reverb: 2"):
+        with pytest.raises(score.ScoreError):
+            score.parse(bad + "\n[笙] 乙\n")
